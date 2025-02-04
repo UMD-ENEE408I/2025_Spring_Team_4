@@ -22,8 +22,11 @@ for i in range(0, len(mod_freq)):
         mod_spec[i] = 0
 
 new_sig = np.fft.ifft(mod_spec)
+new_sig = np.real(new_sig)  # Take only the real part (discard numerical noise from IFFT)
+new_sig = np.int16(new_sig)  # Convert to 16-bit integer format
 
-scipy.io.wavfile.write("new_Cafe_with_noise.wav", spf.getframerate(), (float32)(new_sig))
+scipy.io.wavfile.write("new_Cafe_with_noise.wav", spf.getframerate(), new_sig)
+
 
 plt.subplot(2, 2, 1, title="Imported Waveform", xlabel="Time (s)", ylabel="Amplitude")
 plt.plot(signal)
