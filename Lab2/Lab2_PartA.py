@@ -29,4 +29,5 @@ outframerate = out_wav.setframerate(8000)
 outchannelnum = out_wav.setnchannels(num_channels)
 outsamplewidth = out_wav.setsampwidth(samplewidth)
 
-out_wav.writeframes(downsample_audio.tobytes())
+outaudiodata = out_wav.writeframes(downsample_audio.tobytes())
+
