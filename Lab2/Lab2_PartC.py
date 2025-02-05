@@ -3,15 +3,21 @@ import numpy as np
 import wave
 import scipy.io.wavfile
 
+# 1)
+
 spf = wave.open("Cafe_with_noise.wav", "r")
 
 # Extract Raw Audio from Wav File
 signal = spf.readframes(-1)
 signal = np.frombuffer(signal, np.int16)
 
+# 2)
+
 # Get FFT of the raw audio
 spectrum = np.fft.fft(signal)
 frequencies = np.fft.fftfreq(len(spectrum))
+
+# 3)
 
 # Create copies of the FFT to modify
 mod_spec = spectrum.copy()
@@ -32,7 +38,7 @@ new_sig = np.real(new_sig).astype(np.int16)
 # Write to a new waveform file
 scipy.io.wavfile.write("new_Cafe_with_noise.wav", spf.getframerate(), new_sig)
 
-# Plot data
+# Plot data for Q1-3
 
 # Plot raw audio data
 plt.subplot(2, 2, 1, title="Imported Waveform", xlabel="Time (s)", ylabel="Amplitude")
