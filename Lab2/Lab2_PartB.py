@@ -38,28 +38,47 @@ print("The RMS value for M3.wav: ", rms_value3)
 
 #3)
 
-def cross_correlation(signal1, signal2):
-    len1, len2 = len(signal1), len(signal2)
-    max_lag = len1 + len2 - 1
-    result = np.zeros(max_lag)
+# def cross_correlation(x, y):
+#     """Compute cross-correlation of two signals manually."""
+#     len_x = len(x)
+#     len_y = len(y)
+#     corr = np.zeros(len_x + len_y - 1)
+    
+#     for m in range(-(len_x - 1), len_y):
+#         sum_val = 0
+#         for n in range(len_x):
+#             if 0 <= n - m < len_y:
+#                 sum_val += x[n] * y[n - m]
+#         corr[m + len_x - 1] = sum_val
+    
+#     return corr
 
-    for lag in range(-len2 + 1, len1):
-        sum_corr = 0
-        for i in range(len1):
-            j = i - lag
-            if 0 <= j < len2:
-                sum_corr += signal1[i] * signal2[j]
-        result[lag + len2 - 1] = sum_corr  # Shift index to store in result array
+# def find_time_delay(signal1, signal2, sampling_rate):
+#     """Find the time delay between two signals."""
+#     corr = cross_correlation(signal1, signal2)
+#     delay_samples = np.argmax(corr) - (len(signal1) - 1)
+#     time_delay = delay_samples / sampling_rate
+#     return time_delay
 
-    return result, np.arange(-len2 + 1, len1)
+# # Example usage
+# sampling_rate = 8000  # 8 kHz as mentioned
+# delay = find_time_delay(y1, y3, sampling_rate)
+# print(f"Time delay: {delay} seconds")
 
-def find_time_delay(signal1, signal2, sample_rate):
-    cross_corr, lags = cross_correlation(signal1, signal2)
-    max_lag_index = np.argmax(cross_corr)  # Find index of maximum correlation
-    lag_samples = lags[max_lag_index]  # Convert index to actual lag
+def cross_correlation_fft(x, y):
+    n = len(x) + len(y) - 1  # Length for FFT
+    X = np.fft.fft(x, n)  # FFT of signal1
+    Y = np.fft.fft(y, n)  # FFT of signal2
+    corr = np.fft.ifft(X * np.conj(Y)).real  # Compute cross-correlation
+    return np.fft.fftshift(corr)  # Shift for correct alignment
 
-    time_delay = lag_samples / sample_rate  # Convert lag to time
+def find_time_delay(signal1, signal2, sampling_rate):
+    corr = cross_correlation_fft(signal1, signal2)
+    delay_samples = np.argmax(corr) - (len(signal1) - 1)  # Find peak index
+    time_delay = delay_samples / sampling_rate
     return time_delay
 
-time_delay = find_time_delay(y1,y2,8000)
-print(time_delay)
+# Example usage
+sampling_rate = 8000  # 8 kHz
+delay = find_time_delay(y1, y3, sampling_rate)
+print(f"Time delay: {delay} seconds")
