@@ -19,8 +19,22 @@ def detectLine(frame):
     gray = cv2.cvtColor(frame ,cv2.COLOR_BGR2GRAY)
 
     upper_white = 255
-    lower_white = 200
-    gray = cv2.inRange(gray, lower_white, upper_white)
+    lower_white = 150
+    mask = cv2.inRange(gray, lower_white, upper_white)
+
+    kernel_erode = np.ones((4,4), np.uint8)
+    eroded_mask = cv2.erode(mask, kernel_erode, iterations=1)
+    kernel_dilate = np.ones((6,6),np.uint8)
+    dilated_mask = cv2.dilate(eroded_mask, kernel_dilate, iterations=1)
+    contours, hierarchy = cv2.findContours(dilated_mask, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
+    # Sort by area (keep only the biggest one)
+    contours = sorted(contours, key=cv2.contourArea, reverse=True)[:1]
+    if len(contours) > 0:
+        M = cv2.moments(contours[0])
+        # Centroid
+        cx = int(M['m10']/M['m00'])
+        cy = int(M['m01']/M['m00'])
+        print("Centroid of the biggest area: ({}, {})".format(cx, cy))
 
     kernel_size = 5
     blur_gray = cv2.GaussianBlur(gray,(kernel_size, kernel_size),0)
@@ -52,7 +66,11 @@ def detectLine(frame):
     return 0, lines_edges
 
 def main():
-    cam = cv2.VideoCapture(1,cv2.CAP_DSHOW)
+    camera_index = 1 if HAS_USB else 0 
+    if os.name == 'Windows':
+        cam = cv2.VideoCapture(camera_index, cv2.CAP_DSHOW)
+    else:
+        cam = cv2.VideoCapture(camera_index)
 
 
     while cam.isOpened():
