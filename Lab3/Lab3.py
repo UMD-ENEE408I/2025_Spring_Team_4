@@ -25,7 +25,7 @@ def detectLine(frame):
     threshold = 15  # minimum number of votes (intersections in Hough grid cell)
     min_line_length = 50  # minimum number of pixels making up a line
     max_line_gap = 20  # maximum gap in pixels between connectable line segments
-    line_image = np.copy(img) * 0  # creating a blank to draw lines on
+    line_image = np.copy(frame) * 0  # creating a blank to draw lines on
 
     # Run Hough on edge detected image
     # Output "lines" is an array containing endpoints of detected line segments
@@ -38,7 +38,7 @@ def detectLine(frame):
 
     # Draw the lines on the  image
     lines_edges = cv2.addWeighted(frame, 0.8, line_image, 1, 0)
-    return lines_edges
+    return 0, lines_edges
 
 def main():
     cam = cv2.VideoCapture(0)  # Open webcam
