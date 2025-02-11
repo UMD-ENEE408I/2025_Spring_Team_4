@@ -29,12 +29,12 @@ def detectLine(frame):
     contours, hierarchy = cv2.findContours(dilated_mask, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
     # Sort by area (keep only the biggest one)
     contours = sorted(contours, key=cv2.contourArea, reverse=True)[:1]
+
     if len(contours) > 0:
         M = cv2.moments(contours[0])
         # Centroid
         cx = int(M['m10']/M['m00'])
         cy = int(M['m01']/M['m00'])
-        print("Centroid of the biggest area: ({}, {})".format(cx, cy))
 
     kernel_size = 5
     blur_gray = cv2.GaussianBlur(gray,(kernel_size, kernel_size),0)
@@ -60,6 +60,9 @@ def detectLine(frame):
     for line in lines:
         for x1,y1,x2,y2 in line:
             cv2.line(line_image,(x1,y1),(x2,y2),(0,0,255),5)
+
+    cv2.line(line_image, (cx, 0), (cx, len(frame)), (0,255,0), 5)
+    cv2.line(line_image, (0, cy), (len(frame[0]), cy), (0,255,0), 5)
 
     # Draw the lines on the  image
     lines_edges = cv2.addWeighted(frame, 0.8, line_image, 1, 0)
