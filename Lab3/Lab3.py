@@ -40,7 +40,7 @@ def detectLine(frame):
     
     for line in lines:
         for x1,y1,x2,y2 in line:
-            cv2.line(line_image,(x1,y1),(x2,y2),(255,0,0),5)
+            cv2.line(line_image,(x1,y1),(x2,y2),(0,0,255),5)
 
     # Draw the lines on the  image
     lines_edges = cv2.addWeighted(frame, 0.8, line_image, 1, 0)
