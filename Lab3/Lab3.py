@@ -2,7 +2,7 @@ import cv2
 import numpy as np
 import os
 
-HAS_USB = True
+HAS_USB = False
 
 def detectLine(frame):
     """
@@ -17,17 +17,36 @@ def detectLine(frame):
     """
 
     gray = cv2.cvtColor(frame ,cv2.COLOR_BGR2GRAY)
+
+    upper_white = 255
+    lower_white = 150
+    mask = cv2.inRange(gray, lower_white, upper_white)
+
+    kernel_erode = np.ones((4,4), np.uint8)
+    eroded_mask = cv2.erode(mask, kernel_erode, iterations=1)
+    kernel_dilate = np.ones((6,6),np.uint8)
+    dilated_mask = cv2.dilate(eroded_mask, kernel_dilate, iterations=1)
+    contours, hierarchy = cv2.findContours(dilated_mask, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
+    # Sort by area (keep only the biggest one)
+    contours = sorted(contours, key=cv2.contourArea, reverse=True)[:1]
+    if len(contours) > 0:
+        M = cv2.moments(contours[0])
+        # Centroid
+        cx = int(M['m10']/M['m00'])
+        cy = int(M['m01']/M['m00'])
+        print("Centroid of the biggest area: ({}, {})".format(cx, cy))
+
     kernel_size = 5
     blur_gray = cv2.GaussianBlur(gray,(kernel_size, kernel_size),0)
-    low_threshold = 50
-    high_threshold = 150
+    low_threshold = 150
+    high_threshold = 200
     edges = cv2.Canny(blur_gray, low_threshold, high_threshold)
 
     rho = 1  # distance resolution in pixels of the Hough grid
     theta = np.pi / 180  # angular resolution in radians of the Hough grid
     threshold = 15  # minimum number of votes (intersections in Hough grid cell)
-    min_line_length = 50  # minimum number of pixels making up a line
-    max_line_gap = 20  # maximum gap in pixels between connectable line segments
+    min_line_length = 15  # minimum number of pixels making up a line
+    max_line_gap = 15  # maximum gap in pixels between connectable line segments
     line_image = np.copy(frame) * 0  # creating a blank to draw lines on
 
     # Run Hough on edge detected image
@@ -48,8 +67,10 @@ def detectLine(frame):
 
 def main():
     camera_index = 1 if HAS_USB else 0 
-    flags = cv2.CAP_DSHOW if os.name == 'Windows' else None
-    cam = cv2.VideoCapture(camera_index, flags)  # Open webcam
+    if os.name == 'Windows':
+        cam = cv2.VideoCapture(camera_index, cv2.CAP_DSHOW)
+    else:
+        cam = cv2.VideoCapture(camera_index)
 
 
     while cam.isOpened():
