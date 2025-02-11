@@ -1,5 +1,8 @@
 import cv2
 import numpy as np
+import os
+
+HAS_USB = True
 
 def detectLine(frame):
     """
@@ -44,11 +47,9 @@ def detectLine(frame):
     return 0, lines_edges
 
 def main():
-    # for i in range(0,4):
-    cam = cv2.VideoCapture(1, cv2.CAP_DSHOW)  # Open webcam
-        # if cam.isOpened():
-        #     break
-        # cam.release()
+    camera_index = 1 if HAS_USB else 0 
+    flags = cv2.CAP_DSHOW if os.name == 'Windows' else None
+    cam = cv2.VideoCapture(camera_index, flags)  # Open webcam
 
 
     while cam.isOpened():
