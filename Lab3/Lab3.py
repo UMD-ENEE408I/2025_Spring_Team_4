@@ -32,8 +32,8 @@ def detectLine(frame):
     lines = cv2.HoughLinesP(edges, rho, theta, threshold, np.array([]),
                         min_line_length, max_line_gap)
     
-    if not lines:
-        return 0, frame
+    if lines is None:
+        return 0, gray
     
     for line in lines:
         for x1,y1,x2,y2 in line:
@@ -44,11 +44,11 @@ def detectLine(frame):
     return 0, lines_edges
 
 def main():
-    for i in range(0,4):
-        cam = cv2.VideoCapture(i, cv2.CAP_DSHOW)  # Open webcam
-        if cam.isOpened():
-            break
-        cam.release()
+    # for i in range(0,4):
+    cam = cv2.VideoCapture(1, cv2.CAP_DSHOW)  # Open webcam
+        # if cam.isOpened():
+        #     break
+        # cam.release()
 
 
     while cam.isOpened():
