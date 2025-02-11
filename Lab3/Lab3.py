@@ -41,7 +41,11 @@ def detectLine(frame):
     return 0, lines_edges
 
 def main():
-    cam = cv2.VideoCapture(0)  # Open webcam
+    for i in range(0,4):
+        cam = cv2.VideoCapture(i)  # Open webcam
+        if cam.isOpened():
+            break
+
 
     while cam.isOpened():
         ret, frame = cam.read()
