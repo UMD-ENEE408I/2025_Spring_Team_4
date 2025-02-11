@@ -42,7 +42,7 @@ def detectLine(frame):
 
 def main():
     for i in range(0,4):
-        cam = cv2.VideoCapture(i)  # Open webcam
+        cam = cv2.VideoCapture(i, cv2.CAP_DSHOW)  # Open webcam
         if cam.isOpened():
             break
 
