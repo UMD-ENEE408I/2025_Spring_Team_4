@@ -19,15 +19,15 @@ def detectLine(frame):
     gray = cv2.cvtColor(frame ,cv2.COLOR_BGR2GRAY)
     kernel_size = 5
     blur_gray = cv2.GaussianBlur(gray,(kernel_size, kernel_size),0)
-    low_threshold = 50
-    high_threshold = 150
+    low_threshold = 150
+    high_threshold = 200
     edges = cv2.Canny(blur_gray, low_threshold, high_threshold)
 
     rho = 1  # distance resolution in pixels of the Hough grid
     theta = np.pi / 180  # angular resolution in radians of the Hough grid
     threshold = 15  # minimum number of votes (intersections in Hough grid cell)
-    min_line_length = 50  # minimum number of pixels making up a line
-    max_line_gap = 20  # maximum gap in pixels between connectable line segments
+    min_line_length = 15  # minimum number of pixels making up a line
+    max_line_gap = 15  # maximum gap in pixels between connectable line segments
     line_image = np.copy(frame) * 0  # creating a blank to draw lines on
 
     # Run Hough on edge detected image
@@ -47,11 +47,7 @@ def detectLine(frame):
     return 0, lines_edges
 
 def main():
-    camera_index = 1 if HAS_USB else 0 
-    if os.name == 'Windows':
-        cam = cv2.VideoCapture(camera_index, cv2.CAP_DSHOW)
-    else:
-        cam = cv2.VideoCapture(camera_index)
+    cam = cv2.VideoCapture(1,cv2.CAP_DSHOW)
 
 
     while cam.isOpened():
