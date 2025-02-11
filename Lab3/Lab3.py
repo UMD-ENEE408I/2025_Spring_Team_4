@@ -50,7 +50,7 @@ def main():
 
         lineCenter, newFrame = detectLine(frame)
 
-        cv2.imshow(newFrame)
+        cv2.imshow("process frames", newFrame)
 
         if cv2.waitKey(1) & 0xFF == ord('q'):
             break
