@@ -66,7 +66,8 @@ def detectLine(frame):
 
     # Draw the lines on the  image
     lines_edges = cv2.addWeighted(frame, 0.8, line_image, 1, 0)
-    return 0, lines_edges
+    line_center = cx/len(frame)
+    return line_center, lines_edges
 
 def main():
     camera_index = 1 if HAS_USB else 0 
