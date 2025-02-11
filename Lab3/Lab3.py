@@ -2,7 +2,7 @@ import cv2
 import numpy as np
 import os
 
-HAS_USB = True
+HAS_USB = False
 
 def detectLine(frame):
     """
@@ -17,6 +17,11 @@ def detectLine(frame):
     """
 
     gray = cv2.cvtColor(frame ,cv2.COLOR_BGR2GRAY)
+
+    upper_white = 255
+    lower_white = 200
+    gray = cv2.inRange(gray, lower_white, upper_white)
+
     kernel_size = 5
     blur_gray = cv2.GaussianBlur(gray,(kernel_size, kernel_size),0)
     low_threshold = 50
