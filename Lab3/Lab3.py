@@ -31,7 +31,10 @@ def detectLine(frame):
     # Output "lines" is an array containing endpoints of detected line segments
     lines = cv2.HoughLinesP(edges, rho, theta, threshold, np.array([]),
                         min_line_length, max_line_gap)
-
+    
+    if not lines:
+        return 0, frame
+    
     for line in lines:
         for x1,y1,x2,y2 in line:
             cv2.line(line_image,(x1,y1),(x2,y2),(255,0,0),5)
@@ -45,6 +48,7 @@ def main():
         cam = cv2.VideoCapture(i, cv2.CAP_DSHOW)  # Open webcam
         if cam.isOpened():
             break
+        cam.release()
 
 
     while cam.isOpened():
