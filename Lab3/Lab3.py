@@ -70,7 +70,7 @@ def detectLine(frame):
 
 def main():
     camera_index = 1 if HAS_USB else 0 
-    if os.name == 'Windows':
+    if os.name == 'nt':
         cam = cv2.VideoCapture(camera_index, cv2.CAP_DSHOW)
     else:
         cam = cv2.VideoCapture(camera_index)
