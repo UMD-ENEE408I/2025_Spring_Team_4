@@ -1,6 +1,7 @@
 from ultralytics import YOLO
 import torch
 import cv2
+import pathlib
 
 # Load a COCO-pretrained YOLOv8n model
 model = YOLO("yolov8n.pt")
@@ -34,7 +35,8 @@ print("\n Now starting part 2 \n")
 #model = model.train(data = r"C:\Users\andyn\408I\2025_Spring_Team_4-1\Lab3\data.yaml", epochs = 10, imgsz = 640, batch = 16)
 
 #Load trained model
-model = YOLO(r"C:\Users\andyn\408I\2025_Spring_Team_4-1\runs\detect\train12\weights\best.pt")
+weights_dir = pathlib.Path("../../runs/detect/train12/weights/best.pt")
+model = YOLO(weights_dir)
 
 #Open camera
 cam = cv2.VideoCapture(0)

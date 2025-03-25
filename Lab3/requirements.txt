@@ -2,3 +2,6 @@ opencv-python
 numpy
 torch
 ultralytics
+matplotlib
+scipy
+soundfile
