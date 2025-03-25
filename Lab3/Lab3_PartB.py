@@ -9,7 +9,7 @@ model = YOLO("yolov8n.pt")
 #run below line to train
 #results = model.train(data="coco8.yaml", epochs= 6, imgsz=640)
 #Open cam
-cam = cv2.VideoCapture(0)
+'''cam = cv2.VideoCapture(0)
 while cam.isOpened(): 
     ret, frame = cam.read()
     if not ret:
@@ -27,7 +27,7 @@ while cam.isOpened():
         break
 cam.release()
 cv2.destroyAllWindows
-
+'''
 print("\n Now starting part 2 \n")
 
  #Now let's try use YOLO to make a model to detect the burgerbot!!!!
@@ -35,9 +35,10 @@ print("\n Now starting part 2 \n")
 #model = model.train(data = r"C:\Users\andyn\408I\2025_Spring_Team_4-1\Lab3\data.yaml", epochs = 10, imgsz = 640, batch = 16)
 
 #Load trained model
-weights_dir = pathlib.Path("../../runs/detect/train12/weights/best.pt")
-model = YOLO(weights_dir)
-
+#weights_dir = pathlib.Path("../../runs\detect/train2/weights/best.pt")
+#weights_dir = pathlib.Path("runs\detect\train2\weights\best.pt")
+#model = YOLO(weights_dir)
+model = YOLO(r"C:\Users\andyn\408I\2025_Spring_Team_4-1\runs\detect\train2\weights\best.pt")
 #Open camera
 cam = cv2.VideoCapture(0)
 
