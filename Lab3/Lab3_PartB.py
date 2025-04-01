@@ -38,7 +38,7 @@ print("\n Now starting part 2 \n")
 #weights_dir = pathlib.Path("../../runs\detect/train2/weights/best.pt")
 #weights_dir = pathlib.Path("runs\detect\train2\weights\best.pt")
 #model = YOLO(weights_dir)
-model = YOLO(r"C:\Users\andyn\408I\2025_Spring_Team_4-1\runs\detect\train2\weights\best.pt")
+model = YOLO(r"C:\Users\andyn\408I\2025_Spring_Team_4-1\runs\detect\train2\weights\best.pt") #PLEASE note changed to turtlebotmodel in lab3 directory
 #Open camera
 cam = cv2.VideoCapture(0)
 
