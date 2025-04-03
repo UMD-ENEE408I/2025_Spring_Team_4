@@ -1,3 +1,5 @@
 .venv
 .vscode 
 runs
+.env
+.git

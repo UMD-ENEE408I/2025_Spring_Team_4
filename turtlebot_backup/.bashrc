@@ -135,3 +135,5 @@ export LDS_MODEL=LDS-01
 export LDS_MODEL=LDS-02
 
 export TURTLEBOT3_MODEL=burger
+
+export $(grep -v '^#' ../.env | xargs)

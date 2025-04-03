@@ -1,14 +1,18 @@
 #!/usr/bin/env python3
 
 import rospy
+import os
 from sensor_msgs.msg import Image
 import cv2
 from cv_bridge import CvBridge
+from ultralytics import YOLO
+
+model_directory = os.getenv("MODEL_WEIGHTS_DIR")
 
 subscriberNodeName='camera_sensor_subscriber'
 topicName='video_topic'
 
-model = YOLO("~/Model_Weights/vision_weights.pt")
+model = YOLO(model_directory)
 
 def callbackFunction(message):
     bridgeObject = CvBridge()
