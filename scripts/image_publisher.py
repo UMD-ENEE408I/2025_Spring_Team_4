@@ -12,7 +12,7 @@ rospy.init_node(publisherNodeName, anonymous=True)
 
 publisher = rospy.Publisher(topicName, Image, queue_size=2)
 
-rate = rospy.Rate(0.5)
+rate = rospy.Rate(1)
 
 videoCaptureObject = cv2.VideoCapture(0)
 

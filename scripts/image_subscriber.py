@@ -19,9 +19,9 @@ def callbackFunction(message):
 
     rospy.loginfo("received a video message/frame")
 
-    convertedFrameBackToCV = bridgeObject.imgmsg_to_cv2(message)
+    convertedFrameBackToCV = bridgeObject.compressed_imgmsg_to_cv2(message)
 
-    results = model(frame)
+    results = model(convertedFrameBackToCV)
 
     annotated_frame = results[0].plot()
 
