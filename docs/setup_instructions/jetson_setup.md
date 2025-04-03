@@ -27,4 +27,6 @@ TODO:
         - When installing pip, if using the script, just use ```wget```
         - You may need to add a directory to your path variable after the install. Use ```export PATH=$PATH:/home/teamfoo/.local/bin``` to do so or add this line in .bashrc so it runs in every terminal.
 4. Install ROS
-    - (https://emanual.robotis.com/docs/en/platform/turtlebot3/quick-start/)
+    - Use this link to [install ROS Noetic](https://emanual.robotis.com/docs/en/platform/turtlebot3/quick-start/)
+5. Ensure Ultralytics is installed to use the Jetson GPU
+    - Follow this for [Installing Ultralytics on the Nvidia Jetson](https://docs.ultralytics.com/guides/deepstream-nvidia-jetson/)
