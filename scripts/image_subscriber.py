@@ -2,7 +2,7 @@
 
 import rospy
 import os
-from sensor_msgs.msg import Image
+from sensor_msgs.msg import CompressedImage
 import cv2
 from cv_bridge import CvBridge
 from ultralytics import YOLO
@@ -30,6 +30,6 @@ def callbackFunction(message):
     cv2.waitKey(1)
 
 rospy.init_node(subscriberNodeName, anonymous=True)
-rospy.Subscriber(topicName, Image, callbackFunction)
+rospy.Subscriber(topicName, CompressedImage, callbackFunction)
 rospy.spin()
 cv2.destroyAllWindows()
