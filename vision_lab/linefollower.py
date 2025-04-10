@@ -3,7 +3,7 @@ import numpy as np
 import time
 import os
 
-HAS_USB = False
+HAS_USB = True
 # PID Controller
 class PIDController:
     def __init__(self, Kp=0.05, Ki=0.001, Kd=0.05):
