@@ -20,7 +20,7 @@ def detectLine(frame):
     line_image = np.copy(frame) * 0  # creating a blank to draw lines on
 
     upper_white = 255
-    lower_white = 175
+    lower_white = 150
     kernel_erode = np.ones((4,4), np.uint8)
     kernel_dilate = np.ones((6,6),np.uint8)
 
@@ -53,16 +53,16 @@ def detectLine(frame):
         cx = int(M['m10']/M['m00'])
         cy = int(M['m01']/M['m00'])
 
-    lines = cv2.HoughLinesP(edges, rho, theta, threshold, np.array([]), min_line_length, max_line_gap)
+    # lines = cv2.HoughLinesP(edges, rho, theta, threshold, np.array([]), min_line_length, max_line_gap)
     
 
-    if lines is None or cx == -1 or cy == -1:
-        return None, cv2.cvtColor(gray, cv2.COLOR_GRAY2BGR)
+    #if lines is None or cx == -1 or cy == -1:
+        #return None, cv2.cvtColor(gray, cv2.COLOR_GRAY2BGR)
 
     
-    for line in lines:
-        for x1,y1,x2,y2 in line:
-            cv2.line(line_image,(x1,y1),(x2,y2),(0,0,255),5)
+   # for line in lines:
+    #    for x1,y1,x2,y2 in line:
+     #       cv2.line(line_image,(x1,y1),(x2,y2),(0,0,255),5)
 
     #cv2.line(line_image, (cx, 0), (cx, len(frame)), (0,255,0), 5)
     #cv2.line(line_image, (0, cy), (len(frame[0]), cy), (0,255,0), 5)
@@ -70,8 +70,8 @@ def detectLine(frame):
 
     # Draw the lines on the  image
     lines_edges = cv2.addWeighted(frame, 0.8, line_image, 1, 0)
-    line_center = cx/len(frame)
-    return line_center, lines_edges
+    #line_center = cx/len(frame)
+    return lines_edges
 def splitFrameRegionsWithDetection(frame, near_ratio=0.5, far_ratio=0.5):
     """
     Splits the frame into nearsight, farsight_left, and farsight_right,
@@ -112,14 +112,14 @@ def splitFrameRegionsWithDetection(frame, near_ratio=0.5, far_ratio=0.5):
     }
 
     # Check for white line presence in each region
-    for name, region in regions.items():
-        gray = cv2.cvtColor(region, cv2.COLOR_BGR2GRAY)
-        mask = cv2.inRange(gray, 175, 255)  # Threshold for white
-        contours, _ = cv2.findContours(mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
-        if contours:
-            print(f"White line detected in {name}")
-        else:
-            print(f"No line detected in {name}")
+    #for name, region in regions.items():
+     #   gray = cv2.cvtColor(region, cv2.COLOR_BGR2GRAY)
+      #  mask = cv2.inRange(gray, 175, 255)  # Threshold for white
+       # contours, _ = cv2.findContours(mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+        #if contours:
+         #   print(f"White line detected in {name}")
+        #else:
+         #   print(f"No line detected in {name}")
 
     return regions
 
@@ -147,7 +147,7 @@ def main():
         # Apply detectLine to each region
         for name in ["nearsight", "farsight_left", "farsight_right"]:
             region = regions[name]
-            center, processed = detectLine(region)
+            processed = detectLine(region)
             if processed is not None:
                 # Put the processed region back into display_frame
                 if name == "nearsight":
