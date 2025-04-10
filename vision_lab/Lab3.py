@@ -1,8 +1,8 @@
 import cv2
 import numpy as np
 import os
-
-HAS_USB = False
+import time
+HAS_USB = True
 
 def detectLine(frame):
     """
@@ -20,7 +20,7 @@ def detectLine(frame):
     line_image = np.copy(frame) * 0  # creating a blank to draw lines on
 
     upper_white = 255
-    lower_white = 150
+    lower_white = 175
     kernel_erode = np.ones((4,4), np.uint8)
     kernel_dilate = np.ones((6,6),np.uint8)
 
@@ -31,7 +31,7 @@ def detectLine(frame):
 
 
     kernel_size = 5
-    low_threshold = 150
+    low_threshold = 175
     high_threshold = 200
     rho = 1  # distance resolution in pixels of the Hough grid
     theta = np.pi / 180  # angular resolution in radians of the Hough grid
@@ -57,19 +57,74 @@ def detectLine(frame):
     
 
     if lines is None or cx == -1 or cy == -1:
-        return None, gray
+        return None, cv2.cvtColor(gray, cv2.COLOR_GRAY2BGR)
+
     
     for line in lines:
         for x1,y1,x2,y2 in line:
             cv2.line(line_image,(x1,y1),(x2,y2),(0,0,255),5)
 
-    cv2.line(line_image, (cx, 0), (cx, len(frame)), (0,255,0), 5)
-    cv2.line(line_image, (0, cy), (len(frame[0]), cy), (0,255,0), 5)
+    #cv2.line(line_image, (cx, 0), (cx, len(frame)), (0,255,0), 5)
+    #cv2.line(line_image, (0, cy), (len(frame[0]), cy), (0,255,0), 5)
+    cv2.circle(line_image, (cx, cy), 10, (0, 255, 0), -1)  # Green filled circle
 
     # Draw the lines on the  image
     lines_edges = cv2.addWeighted(frame, 0.8, line_image, 1, 0)
     line_center = cx/len(frame)
     return line_center, lines_edges
+def splitFrameRegionsWithDetection(frame, near_ratio=0.5, far_ratio=0.5):
+    """
+    Splits the frame into nearsight, farsight_left, and farsight_right,
+    draws blue boundaries, and prints detection status in each zone.
+
+    Args:
+        frame (numpy.ndarray): Input frame (will be modified to show boundaries).
+        near_ratio (float): Proportion of frame height for nearsight region.
+        far_ratio (float): Proportion of frame height for farsight region.
+
+    Returns:
+        dict: Dictionary containing the 3 subregions.
+    """
+    height, width, _ = frame.shape
+
+    near_start = int((1 - near_ratio) * height)
+    far_end = int(far_ratio * height)
+    half_width = width // 2
+    half_height = height // 2
+    # Draw horizontal line for nearsight boundary
+    cv2.line(frame, (0, near_start), (width, near_start), (255, 0, 0), 2)
+
+    # Draw vertical line for farsight left/right boundary
+    cv2.line(frame, (half_width, 0), (half_width, far_end), (255, 0, 0), 2)
+
+    # Draw horizontal line for farsight bottom boundary
+    cv2.line(frame, (0, far_end), (width, far_end), (255, 0, 0), 2)
+
+    # Extract regions
+    nearsight = frame[near_start:, :]
+    farsight_left = frame[:far_end, :half_width]
+    farsight_right = frame[:far_end, half_width:]
+
+    regions = {
+        "nearsight": nearsight,
+        "farsight_left": farsight_left,
+        "farsight_right": farsight_right
+    }
+
+    # Check for white line presence in each region
+    for name, region in regions.items():
+        gray = cv2.cvtColor(region, cv2.COLOR_BGR2GRAY)
+        mask = cv2.inRange(gray, 175, 255)  # Threshold for white
+        contours, _ = cv2.findContours(mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+        if contours:
+            print(f"White line detected in {name}")
+        else:
+            print(f"No line detected in {name}")
+
+    return regions
+
+
+
 
 def main():
     camera_index = 1 if HAS_USB else 0 
@@ -78,15 +133,32 @@ def main():
     else:
         cam = cv2.VideoCapture(camera_index)
 
-
     while cam.isOpened():
         ret, frame = cam.read()
         if not ret:
             break
 
-        lineCenter, newFrame = detectLine(frame)
+        # Make a copy to draw detections on
+        display_frame = frame.copy()
 
-        cv2.imshow("process frames", newFrame)
+        # Split regions (draws blue boundaries & prints detection)
+        regions = splitFrameRegionsWithDetection(display_frame)
+
+        # Apply detectLine to each region
+        for name in ["nearsight", "farsight_left", "farsight_right"]:
+            region = regions[name]
+            center, processed = detectLine(region)
+            if processed is not None:
+                # Put the processed region back into display_frame
+                if name == "nearsight":
+                    display_frame[-region.shape[0]:, :] = processed
+                elif name == "farsight_left":
+                    display_frame[:region.shape[0], :region.shape[1]] = processed
+                elif name == "farsight_right":
+                    display_frame[:region.shape[0], -region.shape[1]:] = processed
+
+        # Show the final combined frame
+        cv2.imshow("process frames", display_frame)
 
         if cv2.waitKey(1) & 0xFF == ord('q'):
             break
