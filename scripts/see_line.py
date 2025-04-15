@@ -34,21 +34,59 @@ def detectLine(frame):
     dilated_mask = cv2.dilate(eroded_mask, kernel_dilate, iterations=1)
     contours, _ = cv2.findContours(dilated_mask, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
 
+
+    kernel_size = 5
+    low_threshold = 175
+    high_threshold = 200
+    rho = 1  # distance resolution in pixels of the Hough grid
+    theta = np.pi / 180  # angular resolution in radians of the Hough grid
+    threshold = 15  # minimum number of votes (intersections in Hough grid cell)
+    min_line_length = 15  # minimum number of pixels making up a line
+    max_line_gap = 15  # maximum gap in pixels between connectable line segments
+
+    blur_gray = cv2.GaussianBlur(gray,(kernel_size, kernel_size),0)
+    edges = cv2.Canny(blur_gray, low_threshold, high_threshold)
+
+    
     # Sort by area (keep only the biggest one)
     contours = sorted(contours, key=cv2.contourArea, reverse=True)[:1]
     cx = -1
     cy = -1
+    height, width = frame.shape[:2]
+    cx = cy = -1
+    norm_cx = norm_cy = None
     if len(contours) > 0:
         M = cv2.moments(contours[0])
         # Centroid
         cx = int(M['m10']/M['m00'])
         cy = int(M['m01']/M['m00'])
 
+        # Normalize so that center is (0,0), bottom-right is (1,1), top-left is (-1,-1)
+        norm_cx = (cx - width / 2) / (width / 2)
+        norm_cy = (cy - height / 2) / (height / 2)
+
+
+    # lines = cv2.HoughLinesP(edges, rho, theta, threshold, np.array([]), min_line_length, max_line_gap)
+    
+
+    #if lines is None or cx == -1 or cy == -1:
+        #return None, cv2.cvtColor(gray, cv2.COLOR_GRAY2BGR)
+
+    
+   # for line in lines:
+    #    for x1,y1,x2,y2 in line:
+     #       cv2.line(line_image,(x1,y1),(x2,y2),(0,0,255),5)
+
+    #cv2.line(line_image, (cx, 0), (cx, len(frame)), (0,255,0), 5)
+    #cv2.line(line_image, (0, cy), (len(frame[0]), cy), (0,255,0), 5)
     cv2.circle(line_image, (cx, cy), 10, (0, 255, 0), -1)  # Green filled circle
 
-    lines_edges = cv2.addWeighted(frame, 0.8, line_image, 1, 0)
+    cv2.circle(line_image, (width // 2, height // 2), 10, (0, 0, 255), -1)  # Red dot at normalized (0,0)
 
-    return lines_edges, cx, cy
+    # Draw the lines on the  image
+    lines_edges = cv2.addWeighted(frame, 0.8, line_image, 1, 0)
+    #line_center = cx/len(frame)
+    return norm_cx, norm_cy, lines_edges
 
 def splitFrameRegions(frame, near_ratio=0.5, far_ratio=0.5):
     """

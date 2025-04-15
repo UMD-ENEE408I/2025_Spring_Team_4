@@ -2,7 +2,7 @@ import cv2
 import numpy as np
 import os
 import time
-HAS_USB = True
+HAS_USB = False
 
 def detectLine(frame):
     """
@@ -47,11 +47,19 @@ def detectLine(frame):
     contours = sorted(contours, key=cv2.contourArea, reverse=True)[:1]
     cx = -1
     cy = -1
+    height, width = frame.shape[:2]
+    cx = cy = -1
+    norm_cx = norm_cy = None
     if len(contours) > 0:
         M = cv2.moments(contours[0])
         # Centroid
         cx = int(M['m10']/M['m00'])
         cy = int(M['m01']/M['m00'])
+
+        # Normalize so that center is (0,0), bottom-right is (1,1), top-left is (-1,-1)
+        norm_cx = (cx - width / 2) / (width / 2)
+        norm_cy = (cy - height / 2) / (height / 2)
+
 
     # lines = cv2.HoughLinesP(edges, rho, theta, threshold, np.array([]), min_line_length, max_line_gap)
     
@@ -68,10 +76,12 @@ def detectLine(frame):
     #cv2.line(line_image, (0, cy), (len(frame[0]), cy), (0,255,0), 5)
     cv2.circle(line_image, (cx, cy), 10, (0, 255, 0), -1)  # Green filled circle
 
+    cv2.circle(line_image, (width // 2, height // 2), 10, (0, 0, 255), -1)  # Red dot at normalized (0,0)
+
     # Draw the lines on the  image
     lines_edges = cv2.addWeighted(frame, 0.8, line_image, 1, 0)
     #line_center = cx/len(frame)
-    return lines_edges
+    return norm_cx, norm_cy, lines_edges
 def splitFrameRegionsWithDetection(frame, near_ratio=0.5, far_ratio=0.5):
     """
     Splits the frame into nearsight, farsight_left, and farsight_right,
@@ -148,6 +158,9 @@ def main():
         for name in ["nearsight", "farsight_left", "farsight_right"]:
             region = regions[name]
             processed = detectLine(region)
+            norm_cx, norm_cy, processed = detectLine(region)
+            print(f"{name}: ({norm_cx:.2f}, {norm_cy:.2f})")
+
             if processed is not None:
                 # Put the processed region back into display_frame
                 if name == "nearsight":

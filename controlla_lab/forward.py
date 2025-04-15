@@ -4,7 +4,6 @@
 # roslaunch turtlebot_bringup minimal.launch
 # On work station:
 # python move.py
-# ANDY- I PULLED THIS FROM A GITHUB REPO
 
 import rospy
 from geometry_msgs.msg import Twist
@@ -68,5 +67,5 @@ if __name__ == '__main__':
 	try:
 		move = GoForward()
 	
-	except:
-		rospy.loginfo("GoForward node terminated.")
+    except:
+        rospy.loginfo("GoForward node terminated.")
