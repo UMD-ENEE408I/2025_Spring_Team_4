@@ -2,32 +2,51 @@
 
 import rospy
 from geometry_msgs.msg import Twist
-from std_msgs.msg import Float32
+from geometry_msgs.msg import Vector3
 
 controllerNodeName = "brian"
 visionTopicName = "line_camera_topic"
-pub = rospy.Publisher('cmd_vel', Twist, queue_size=10)
+commandTopicName = '/cmd_vel'
+x_vec = Vector3()
 
-current_nearsight_x_val = 0
+BURGER_MAX_LIN_VEL = 0.22
+BURGER_MAX_ANG_VEL = 2.84
+LIN_VEL_STEP_SIZE = 0.01
+ANG_VEL_STEP_SIZE = 0.1
 
 def vision_call_back(message):
-    global current_nearsight_x_val
-    current_nearsight_x_val = message.data
+    global x_vec
+    x_vec = message
 
-def vision_brain_line_following(nearsight_x):
+def vision_brain_line_following():
     '''
     Attempts to follow a line according to the webcam. 
     ''' 
-    rospy.loginfo(f'Recieved information, Nearsight coord: {nearsight_x}')
+    current_nearsight_x_val = x_vec.x
+
+    twist = Twist()
+    twist.linear.x = -0.05
+
+    if current_nearsight_x_val > 0:
+        twist.angular.z = -0.1
+    elif current_nearsight_x_val < -0.2:
+        twist.angular.z = 0.1
+    elif current_nearsight_x_val is None:
+        rospy.loginfo("None!")
+        twist.angular.z = 0.0
+        twist.linear.x = 0.0
+
+    rospy.loginfo(f'Angular: {twist.angular.z}\tX Value: {current_nearsight_x_val}')
+    control_publisher.publish(twist)  
 
 
 rospy.init_node(controllerNodeName, anonymous=True)
-rospy.Subscriber(visionTopicName, Float32, vision_call_back)
-
-rate = rospy.Rate(2)
+rospy.Subscriber(visionTopicName, Vector3, vision_call_back)
+control_publisher = rospy.Publisher(commandTopicName, Twist, queue_size=10)
+rate = rospy.Rate(10)
 
 while not rospy.is_shutdown():
-    vision_brain_line_following(current_nearsight_x_val)
+    vision_brain_line_following()
     rate.sleep()
 
 

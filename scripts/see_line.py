@@ -1,13 +1,13 @@
 #!/usr/bin/env python3
 
 import rospy
-import std_msgs.msg
+from geometry_msgs.msg import Vector3
 import cv2
 from cv_bridge import CvBridge
 import numpy as np
 import os
 
-HAS_USB = False
+HAS_USB = True
 
 def detectLine(frame):
     """
@@ -25,7 +25,7 @@ def detectLine(frame):
     line_image = np.copy(frame) * 0  # creating a blank to draw lines on
 
     upper_white = 255
-    lower_white = 150
+    lower_white = 180
     kernel_erode = np.ones((4,4), np.uint8)
     kernel_dilate = np.ones((6,6),np.uint8)
 
@@ -86,7 +86,7 @@ def detectLine(frame):
     # Draw the lines on the  image
     lines_edges = cv2.addWeighted(frame, 0.8, line_image, 1, 0)
     #line_center = cx/len(frame)
-    return norm_cx, norm_cy, lines_edges
+    return lines_edges, norm_cx, norm_cy
 
 def splitFrameRegions(frame, near_ratio=0.5, far_ratio=0.5):
     """
@@ -141,9 +141,9 @@ topicName='line_camera_topic'
 
 rospy.init_node(publisherNodeName, anonymous=True)
 
-publisher = rospy.Publisher(topicName, std_msgs.msg.Float32, queue_size=1)
+publisher = rospy.Publisher(topicName, Vector3, queue_size=1)
 
-rate = rospy.Rate(1)
+rate = rospy.Rate(10)
 
 videoCaptureObject = cv2.VideoCapture(0)
 
@@ -152,10 +152,18 @@ bridgeObject = CvBridge()
 while not rospy.is_shutdown():
     returnValue, capturedFrame = videoCaptureObject.read()
     if returnValue == True:
-        result = detectLinesInRegion(capturedFrame)
-        near_result = result["nearsight"]
-        rospy.loginfo(f'Published: {near_result[0]}')
-        publisher.publish(near_result[0])
+        result = detectLinesInRegion(capturedFrame, 0.05, 0.95)
+        
+        x_values = Vector3()
+
+        rospy.loginfo(f'{result["nearsight"][0]}\t{result["farsight_left"][0]}\t{result["farsight_right"][0]}')
+
+        x_values.x = result["nearsight"][0] if not None else 0.0
+        x_values.y = result["farsight_left"][0] if not None else 0.0
+        x_values.z = result["farsight_right"][0] if not None else 0.0 
+
+        publisher.publish(x_values)
+        
         # for region in result:
         #     rospy.loginfo(f'Centroid detected in region {region}. \tCoordinates: ({result[region][0]}, {result[region][1]})')
 
