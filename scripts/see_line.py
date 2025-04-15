@@ -98,13 +98,12 @@ def detectLinesInRegion(frame, near_ratio=0.5, far_ratio=0.5):
         result[region] = [x, y]
     return result
 
-
 publisherNodeName='line_camera'
 topicName='line_camera_topic'
 
 rospy.init_node(publisherNodeName, anonymous=True)
 
-publisher = rospy.Publisher(topicName, std_msgs.msg.String, queue_size=2)
+publisher = rospy.Publisher(topicName, std_msgs.msg.Float32, queue_size=1)
 
 rate = rospy.Rate(1)
 
@@ -115,9 +114,11 @@ bridgeObject = CvBridge()
 while not rospy.is_shutdown():
     returnValue, capturedFrame = videoCaptureObject.read()
     if returnValue == True:
-        # rospy.loginfo('Image Captured')
         result = detectLinesInRegion(capturedFrame)
-        for region in result:
-            rospy.loginfo(f'Centroid detected in region {region}. \tCoordinates: ({result[region][0]}, {result[region][1]})')
+        near_result = result["nearsight"]
+        rospy.loginfo(f'Published: {near_result[0]}')
+        publisher.publish(near_result[0])
+        # for region in result:
+        #     rospy.loginfo(f'Centroid detected in region {region}. \tCoordinates: ({result[region][0]}, {result[region][1]})')
 
     rate.sleep()
