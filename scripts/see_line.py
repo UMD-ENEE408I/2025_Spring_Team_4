@@ -158,7 +158,7 @@ while not rospy.is_shutdown():
 
         rospy.loginfo(f'{result["nearsight"][0]}\t{result["farsight_left"][0]}\t{result["farsight_right"][0]}')
 
-        x_values.x = result["nearsight"][0] if not None else 0.0
+        x_values.x = result["nearsight"][0] if result["nearsight"][0] not None else 0.0
         x_values.y = result["farsight_left"][0] if not None else 0.0
         x_values.z = result["farsight_right"][0] if not None else 0.0 
 
