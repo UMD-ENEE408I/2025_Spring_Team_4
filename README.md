@@ -12,7 +12,7 @@ Contains files for doing audio recognition and stuff.
 
 Contains files for doing vision recognition, line following, etc.
 
-##controlla_lab
+## controlla_lab
 Contains files for control logic (Turtlebot movement)
 
 ## Turtlebot_backup
