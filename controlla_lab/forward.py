@@ -6,56 +6,28 @@
 # python move.py
 
 import rospy
+import sys, select, os
 from geometry_msgs.msg import Twist
-class GoForward:
+if os.name == 'nt':
+  import msvcrt, time
+else:
+  import tty, termios
 
-	def forward(self,lin,ang):
-		rospy.loginfo("Moving - lin : {} ang : {}".format(lin,ang))
-		# Twist is a datatype for velocity
-		move_cmd = Twist()
-		# let's go forward 
-		move_cmd.linear.x = lin
-		# let's turns
-		move_cmd.angular.z = ang
-		# publish the velocity
-		self.cmd_vel.publish(move_cmd)
+BURGER_MAX_LIN_VEL = 0.22
+BURGER_MAX_ANG_VEL = 2.84
 
-	def __init__(self):
-		# initiliaze
-		rospy.init_node('GoForward', anonymous=False)
+WAFFLE_MAX_LIN_VEL = 0.26
+WAFFLE_MAX_ANG_VEL = 1.82
 
-	# tell user how to stop TurtleBot
-	rospy.loginfo("To stop TurtleBot CTRL + C")
-
-		# What function to call when you ctrl + c    
-	rospy.on_shutdown(self.shutdown)
+LIN_VEL_STEP_SIZE = 0.01
+ANG_VEL_STEP_SIZE = 0.1
+msg = """
+CTRL-C to quit
+"""
+e = "SHIBAL"
+			
 		
-	# Create a publisher which can "talk" to TurtleBot and tell it to move
-		# Tip: You may need to change cmd_vel_mux/input/navi to /cmd_vel if you're not using TurtleBot2
-		self.cmd_vel = rospy.Publisher('cmd_vel_mux/input/navi', Twist, queue_size=10)
-	 
-	#TurtleBot will stop if we don't keep telling it to move.  How often should we tell it to move? 10 HZ
-		r = rospy.Rate(10);
-	
-	# as long as you haven't ctrl + c keeping doing...
-		while not rospy.is_shutdown():
-		# Move forward at 0.3 for 5 sec
-		t0 = rospy.get_rostime().secs
-		while(t0 + 5 >= rospy.get_rostime().secs):
-			self.forward(0.3,0)
-		# Rotate at 1  for 1 sec
-		t0 = rospy.get_rostime().secs
-		while(t0 + 1 >= rospy.get_rostime().secs):
-			self.forward(0,1)
-		# Move forward at 0.2  for 5 sec
-		t0 = rospy.get_rostime().secs
-		while(t0 + 5 >= rospy.get_rostime().secs):
-			self.forward(0.2,0)
-	#	r.sleep()
-		break
-						
-		
-	def shutdown(self):
+def shutdown(self):
 		# stop turtlebot
 		rospy.loginfo("Stop TurtleBot")
 	# a default Twist has linear.x of 0 and angular.z of 0.  So it'll stop TurtleBot
@@ -63,9 +35,42 @@ class GoForward:
 	# sleep just makes sure TurtleBot receives the stop command prior to shutting down the script
 		rospy.sleep(1)
  
-if __name__ == '__main__':
-	try:
-		move = GoForward()
-	
+if __name__=="__main__":
+    if os.name != 'nt':
+        settings = termios.tcgetattr(sys.stdin)
+
+    rospy.init_node('turtlebot3_teleop')
+    pub = rospy.Publisher('cmd_vel', Twist, queue_size=10)
+
+    turtlebot3_model = rospy.get_param("model", "burger")
+
+    status = 0
+    target_linear_vel   = 0.2
+    target_angular_vel  = 0.0
+    control_linear_vel  = 0.2
+    control_angular_vel = 0.0
+
+    try:
+        print(msg)
+        while not rospy.is_shutdown():
+
+            if status == 20 :
+                print(msg)
+                status = 0
+
+            twist = Twist()
+
+
+            pub.publish(twist)
+
     except:
-        rospy.loginfo("GoForward node terminated.")
+        print(e)
+
+    finally:
+        twist = Twist()
+        twist.linear.x = 0.0; twist.linear.y = 0.0; twist.linear.z = 0.0
+        twist.angular.x = 0.0; twist.angular.y = 0.0; twist.angular.z = 0.0
+        pub.publish(twist)
+
+    if os.name != 'nt':
+        termios.tcsetattr(sys.stdin, termios.TCSADRAIN, settings)

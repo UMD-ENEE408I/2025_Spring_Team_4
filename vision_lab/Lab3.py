@@ -20,7 +20,7 @@ def detectLine(frame):
     line_image = np.copy(frame) * 0  # creating a blank to draw lines on
 
     upper_white = 255
-    lower_white = 150
+    lower_white = 180
     kernel_erode = np.ones((4,4), np.uint8)
     kernel_dilate = np.ones((6,6),np.uint8)
 
@@ -31,8 +31,8 @@ def detectLine(frame):
 
 
     kernel_size = 5
-    low_threshold = 175
-    high_threshold = 200
+    low_threshold = 185
+    high_threshold = 225
     rho = 1  # distance resolution in pixels of the Hough grid
     theta = np.pi / 180  # angular resolution in radians of the Hough grid
     threshold = 15  # minimum number of votes (intersections in Hough grid cell)
@@ -82,7 +82,7 @@ def detectLine(frame):
     lines_edges = cv2.addWeighted(frame, 0.8, line_image, 1, 0)
     #line_center = cx/len(frame)
     return norm_cx, norm_cy, lines_edges
-def splitFrameRegionsWithDetection(frame, near_ratio=0.5, far_ratio=0.5):
+def splitFrameRegionsWithDetection(frame, near_ratio=0.05, far_ratio=0.95):
     """
     Splits the frame into nearsight, farsight_left, and farsight_right,
     draws blue boundaries, and prints detection status in each zone.
@@ -159,7 +159,7 @@ def main():
             region = regions[name]
             processed = detectLine(region)
             norm_cx, norm_cy, processed = detectLine(region)
-            print(f"{name}: ({norm_cx:.2f}, {norm_cy:.2f})")
+            #print(f"{name}: ({norm_cx:.2f}, {norm_cy:.2f})")
 
             if processed is not None:
                 # Put the processed region back into display_frame
