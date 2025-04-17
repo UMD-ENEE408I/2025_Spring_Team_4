@@ -98,7 +98,11 @@ def detectLine(frame):
     line_image = np.copy(frame) * 0  # creating a blank to draw lines on
 
     upper_white = 255
+<<<<<<< HEAD
     lower_white = 240
+=======
+    lower_white = 180
+>>>>>>> 49ca0369ad6e362f90e2ba6a64ec600eead4d767
     kernel_erode = np.ones((4,4), np.uint8)
     kernel_dilate = np.ones((6,6),np.uint8)
 
@@ -106,6 +110,23 @@ def detectLine(frame):
     eroded_mask = cv2.erode(mask, kernel_erode, iterations=1)
     dilated_mask = cv2.dilate(eroded_mask, kernel_dilate, iterations=1)
     contours, _ = cv2.findContours(dilated_mask, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
+<<<<<<< HEAD
+=======
+
+
+    kernel_size = 5
+    low_threshold = 185
+    high_threshold = 225
+    rho = 1  # distance resolution in pixels of the Hough grid
+    theta = np.pi / 180  # angular resolution in radians of the Hough grid
+    threshold = 15  # minimum number of votes (intersections in Hough grid cell)
+    min_line_length = 15  # minimum number of pixels making up a line
+    max_line_gap = 15  # maximum gap in pixels between connectable line segments
+
+    blur_gray = cv2.GaussianBlur(gray,(kernel_size, kernel_size),0)
+    edges = cv2.Canny(blur_gray, low_threshold, high_threshold)
+
+>>>>>>> 49ca0369ad6e362f90e2ba6a64ec600eead4d767
     
     # Sort by area (keep only the biggest one)
     contours = sorted(contours, key=cv2.contourArea, reverse=True)[:1]
@@ -129,10 +150,17 @@ def detectLine(frame):
     cv2.circle(line_image, (width // 2, height // 2), 10, (0, 0, 255), -1)  # Red dot at normalized (0,0)
 
     # Draw the lines on the  image
+<<<<<<< HEAD
     processed_image = cv2.addWeighted(frame, 0.8, line_image, 1, 0)
     return processed_image, norm_cx, norm_cy
 
 def splitFrameRegionsWithDetection(frame, near_ratio=0.5, far_ratio=0.5):
+=======
+    lines_edges = cv2.addWeighted(frame, 0.8, line_image, 1, 0)
+    #line_center = cx/len(frame)
+    return norm_cx, norm_cy, lines_edges
+def splitFrameRegionsWithDetection(frame, near_ratio=0.05, far_ratio=0.95):
+>>>>>>> 49ca0369ad6e362f90e2ba6a64ec600eead4d767
     """
     Splits the frame into nearsight, farsight_left, and farsight_right,
     draws blue boundaries, and prints detection status in each zone.
@@ -207,7 +235,13 @@ def main():
         # Apply detectLine to each region
         for name in ["nearsight", "farsight_left", "farsight_right"]:
             region = regions[name]
+<<<<<<< HEAD
             processed, norm_cx, norm_cy = detectLine(region)
+=======
+            processed = detectLine(region)
+            norm_cx, norm_cy, processed = detectLine(region)
+            #print(f"{name}: ({norm_cx:.2f}, {norm_cy:.2f})")
+>>>>>>> 49ca0369ad6e362f90e2ba6a64ec600eead4d767
 
             if processed is not None:
                 # Put the processed region back into display_frame
