@@ -1,47 +1,43 @@
+import sounddevice as sd
+from vosk import Model, KaldiRecognizer
 import numpy as np
-import scipy.signal as signal
-import matplotlib as plt
-import pyaudio
-import time
-import wave
-import pyaudio
-import wave
-# Parameters
-FORMAT = pyaudio.paInt16  # 16-bit audio
-CHANNELS = 1  # Mono audio
-RATE = 44100  # Sample rate in Hz
-CHUNK = 1024  # Buffer size
-RECORD_SECONDS = 5  # Duration of recording
-OUTPUT_FILENAME = "output.wav"  # Output file name
+import json
 
-# Initialize PyAudio
-audio = pyaudio.PyAudio()
+model = Model(lang="en-us")
+samplerate = 16000
+rec = KaldiRecognizer(model, samplerate)
 
-# Open the stream
-stream = audio.open(format=FORMAT, channels=CHANNELS,
-                    rate=RATE, input=True,
-                    frames_per_buffer=CHUNK)
+audio_buffer = bytearray()
 
-print("Recording...")
-frames = []
+def callback(indata, frames, time, status):
+    if status:
+        print(f"Status: {status}")
+    audio_buffer.extend(indata.tobytes())
 
-# Record the audio
-for _ in range(0, int(RATE / CHUNK * RECORD_SECONDS)):
-    data = stream.read(CHUNK)
-    frames.append(data)
+stream = sd.InputStream(callback=callback, channels=1, samplerate=samplerate, dtype='int16', blocksize=8000)
 
-print("Recording finished.")
+count = 0
 
-# Stop and close the stream
-stream.stop_stream()
-stream.close()
-audio.terminate()
+with stream:
+    print("Listening for 'left' or 'right'... (Ctrl+C to quit)")
+    while True:
+        if len(audio_buffer) >= 4000:
+            chunk = bytes(audio_buffer[:4000])
+            audio_buffer = audio_buffer[4000:]
 
-# Save the recorded data to a WAV file
-with wave.open(OUTPUT_FILENAME, 'wb') as wf:
-    wf.setnchannels(CHANNELS)
-    wf.setsampwidth(audio.get_sample_size(FORMAT))
-    wf.setframerate(RATE)
-    wf.writeframes(b''.join(frames))
-
-print(f"Audio recorded and saved as {OUTPUT_FILENAME}")
+            if rec.AcceptWaveform(chunk):
+                result = json.loads(rec.Result())
+                text = result.get("text", "").lower()
+                print(f"Recognized: {text}")
+                if "left" in text:
+                    count += 1
+                    print(f"Heard LEFT! Count: {count}")
+                elif "right" in text:
+                    count -= 1
+                    print(f"Heard RIGHT! Count: {count}")
+                elif "chaser" in text:
+                    count -= 2
+                    print(f"Heard CHASER! Count: {count}")
+                elif "runner" in text:
+                    count += 2
+                    print(f"Heard RUNNER! Count: {count}")
