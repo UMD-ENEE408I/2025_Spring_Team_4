@@ -1,13 +1,14 @@
 #!/usr/bin/env python3
 
 import rospy
-from sensor_msgs.msg import String
 import argparse
 import queue
 import sys
 import sounddevice as sd
 from vosk import Model, KaldiRecognizer
 import json
+import numpy as np
+from std_msgs.msg import UInt8
 
 q = queue.Queue()
 output_cmd = 0
@@ -16,7 +17,7 @@ topicName='audio_topic'
 
 rospy.init_node(publisherNodeName, anonymous=True)
 
-publisher = rospy.Publisher(topicName, output_cmd, queue_size=1)
+publisher = rospy.Publisher(topicName, UInt8, queue_size=1)
 
 rate = rospy.Rate(50)
 def int_or_str(text):
@@ -61,8 +62,13 @@ if args.filename:
     dump_fn = open(args.filename, "wb")
 else:
     dump_fn = None
+if args.samplerate is None:
+        device_info = sd.query_devices(args.device, "input")
+        # soundfile expects an int, sounddevice provides a float:
+        args.samplerate = int(device_info["default_samplerate"])
 with sd.RawInputStream(samplerate=args.samplerate, blocksize = 8000, device=args.device, dtype="int16", channels=1, callback=callback):
     rec = KaldiRecognizer(model, args.samplerate)
+    rospy.loginfo(f"Now Recording!")
     while not rospy.is_shutdown():
             
         data = q.get()
@@ -74,16 +80,20 @@ with sd.RawInputStream(samplerate=args.samplerate, blocksize = 8000, device=args
             if "left" in text:
                 output_cmd = 1
                 rospy.loginfo(f"Heard LEFT! CMD: {output_cmd}")
+                publisher.publish(output_cmd)
             elif "right" in text:
                 output_cmd = 2
                 rospy.loginfo(f"Heard RIGHT! CMD: {output_cmd}")
+                publisher.publish(output_cmd)
             elif "chaser" in text:
                 output_cmd = 3
                 rospy.loginfo(f"Heard CHASER! CMD: {output_cmd}")
+                publisher.publish(output_cmd)
             elif "runner" in text:
                 output_cmd = 4
                 rospy.loginfo(f"Heard RUNNER! CMD: {output_cmd}")
-        publisher.publish(output_cmd)
+                publisher.publish(output_cmd)
+            
         #else:
             #   print(rec.PartialResult())
         if dump_fn is not None:
