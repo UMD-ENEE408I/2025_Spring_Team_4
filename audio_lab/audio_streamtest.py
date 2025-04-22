@@ -8,10 +8,12 @@ import argparse
 import queue
 import sys
 import sounddevice as sd
+import json
 
 from vosk import Model, KaldiRecognizer
 
 q = queue.Queue()
+count = 0
 
 def int_or_str(text):
     """Helper function for argument parsing."""
@@ -76,9 +78,25 @@ try:
         while True:
             data = q.get()
             if rec.AcceptWaveform(data):
+                result = json.loads(rec.Result())
+                text = result.get("text", "").lower()
+                print(f"Recognized text: '{text}'")
                 print(rec.Result())
-            else:
-                print(rec.PartialResult())
+                if "left" in text:
+                    count += 1
+                    print(f"Heard LEFT! Count: {count}")
+                elif "right" in text:
+                    count -= 1
+                    print(f"Heard RIGHT! Count: {count}")
+                elif "chaser" in text:
+                    count -= 2
+                    print(f"Heard CHASER! Count: {count}")
+                elif "runner" in text:
+                    count += 2
+                    print(f"Heard RUNNER! Count: {count}")
+
+            #else:
+             #   print(rec.PartialResult())
             if dump_fn is not None:
                 dump_fn.write(data)
 
