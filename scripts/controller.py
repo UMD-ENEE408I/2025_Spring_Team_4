@@ -3,11 +3,13 @@
 import rospy
 from geometry_msgs.msg import Twist
 from geometry_msgs.msg import Vector3
+from turtlebot3_msgs.msg import Sound
 from collections import deque
 
 controllerNodeName = "brian"
 visionTopicName = "line_camera_topic"
-commandTopicName = '/cmd_vel'
+commandTopicName = 'cmd_vel'
+soundTopicName = 'sound'
 x_vec = Vector3()
 
 TURN_STATE = 0
@@ -26,10 +28,10 @@ class brian:
         self.angular_target = 0
         self.sample_queue = deque(maxlen=sample_window)
         self.target = Twist()
-        self.control_publisher = rospy.Publisher(commandTopicName, Twist, queue_size=10)
         self.state = 0
         self.state_count = 0
         self.rate = rate
+        self.control_publisher = rospy.Publisher(commandTopicName, Twist, queue_size=10)
     
     def process_nearsight(self, line_x_value):
         """
@@ -101,7 +103,6 @@ class brian:
         self.check_bounds()
         rospy.loginfo(f'Angular: {self.target.angular.z}\tLinear: {self.target.linear.x}\tState: {self.state}')
         self.control_publisher.publish(self.target)
-        
 
 def vision_call_back(message):
     global x_vec
