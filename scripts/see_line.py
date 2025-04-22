@@ -127,9 +127,9 @@ while not rospy.is_shutdown():
         
         x_values = Vector3()
 
-        x_values.x = result["nearsight"][0] if result["nearsight"][0] is not None else 0.0
-        x_values.y = result["farsight_left"][0] if result["farsight_left"][0] is not None else 0.0
-        x_values.z = result["farsight_right"][0] if result["farsight_right"][0] is not None else 0.0 
+        x_values.x = result["nearsight"][0] if result["nearsight"][0] is not None else -0xFFFF
+        x_values.y = result["farsight_left"][0] if result["farsight_left"][0] is not None else -0xFFFF
+        x_values.z = result["farsight_right"][0] if result["farsight_right"][0] is not None else -0xFFFF
 
         rospy.loginfo(f'{x_values.x}\t{x_values.y}\t{x_values.z}')
 
