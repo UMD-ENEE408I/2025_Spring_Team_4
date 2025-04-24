@@ -35,9 +35,9 @@ with stream:
                 elif "right" in text:
                     count -= 1
                     print(f"Heard RIGHT! Count: {count}")
-                elif "chaser" in text:
+                elif "chase" in text:
                     count -= 2
-                    print(f"Heard CHASER! Count: {count}")
-                elif "runner" in text:
+                    print(f"Heard CHASE! Count: {count}")
+                elif "run" in text:
                     count += 2
-                    print(f"Heard RUNNER! Count: {count}")
+                    print(f"Heard RUN! Count: {count}")
