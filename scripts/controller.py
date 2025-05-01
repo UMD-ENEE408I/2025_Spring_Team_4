@@ -6,6 +6,7 @@ from geometry_msgs.msg import Vector3
 from std_msgs.msg import UInt8
 from turtlebot3_msgs.msg import Sound
 from collections import deque
+from enum import Enum
 
 # Topic and Node names for this script
 controllerNodeName = "brian"
@@ -25,16 +26,19 @@ button_pressed = 0
 # Constant Values
 
 # Brian States
-TURN_STATE = 0
-WALK_STATE = 1
+class STATES(Enum):
+    TURN_STATE = 0
+    WALK_STATE = 1
+    CHASER_STATE = 2
+    RUNNER_STATE = 3
 
 # Audio Commands
-CMDS = enumerate(["CMD_NULL", "CMD_LEFT", "CMD_RIGHT", "CMD_CHASER", "CMD_RUNNER"])
-CMD_NULL = 0
-CMD_LEFT = 1
-CMD_RIGHT = 2
-CMD_CHASER = 3
-CMD_RUNNER = 4
+class CMDS(Enum):
+    CMD_NULL = 0
+    CMD_LEFT = 1
+    CMD_RIGHT = 2
+    CMD_CHASER = 3
+    CMD_RUNNER = 4
 
 # Decision Variables
 LEFT = 1
@@ -47,11 +51,10 @@ LIN_VEL_STEP_SIZE = 0.01
 ANG_VEL_STEP_SIZE = 0.3
 
 class brian:
-    def __init__(self, controller_node_name, control_commands_topic_name, rate, left_guard=-0.1, right_guard=0.1, sample_window=5):
+    def __init__(self, controller_node_name, control_commands_topic_name, rate, lost_count_threshold=10, left_guard=-0.1, right_guard=0.1, sample_window=5):
         self.control_node = rospy.init_node(controller_node_name, anonymous=True)
         self.left_guard = left_guard
         self.right_guard = right_guard
-        self.x_lin_target = 0
         self.angular_target = 0
         self.sample_window = sample_window
         self.nearsight_sample_queue = deque(maxlen=sample_window)
@@ -60,7 +63,8 @@ class brian:
         self.predict_dir = 0
         self.target = Twist()
         self.state = 0
-        self.state_count = 0
+        self.lost_count = 0
+        self.lost_count_threshold = lost_count_threshold
         self.rate = rate
         self.control_publisher = rospy.Publisher(control_commands_topic_name, Twist, queue_size=10)
 
@@ -92,18 +96,18 @@ class brian:
         else:
             return 0
 
-    def determine_angular_target(self):
+    def determine_angular_target(self, x_val):
         """
         For line following. Used to determine in which direction to turn to stay on the line. 
 
         """
-        rl = self.process_nearsight(vision_x_vec.x)
+        rl = self.process_nearsight(x_val)
         if rl == -1: # turn left
-            self.target.angular.z = -ANG_VEL_STEP_SIZE
+            return -ANG_VEL_STEP_SIZE
         elif rl == 1:
-            self.target.angular.z = ANG_VEL_STEP_SIZE
+            return ANG_VEL_STEP_SIZE
         else:
-            self.target.angular.z = 0
+            return 0
 
     def check_bounds(self):
         """
@@ -155,8 +159,8 @@ class brian:
         ### Data Collection and Processing ###
         
         ## Check Line Detector ##
-        new_value = vision_x_vec[0] 
-        lost_track = False if new_value in range(-1, 1) else True # Flag if the line detector lost track of the line
+        new_value = vision_x_vec.x
+        lost_track = False if new_value >= -1 and new_value <= 1 else True # Flag if the line detector lost track of the line
         if len(self.nearsight_sample_queue) < self.sample_window and lost_track is False: # Checks if values need to be popped off the queue
             self.nearsight_sample_queue.append(new_value)
         else:
@@ -164,16 +168,60 @@ class brian:
             self.nearsight_sample_queue.append(new_value)
 
         averaged_line_pos = 0 # Average of the values in the queue
-        averaged_line_pos = (averaged_line_pos + value for value in self.nearsight_sample_queue)/len(self.nearsight_sample_queue)
+        for value in self.nearsight_sample_queue:
+            averaged_line_pos += value
+        averaged_line_pos = averaged_line_pos/len(self.nearsight_sample_queue)
+
+        if lost_track:
+            self.lost_count += 1
+        else:
+            self.lost_count = 0
 
         ## Check Command Issued ##
-        if last_heard_cmd is not CMD_NULL:
-            new_cmd = last_heard_cmd
-            last_heard_cmd = CMD_NULL
+        new_cmd = last_heard_cmd if last_heard_cmd is not CMDS.CMD_NULL else CMDS.CMD_NULL
+        last_heard_cmd = CMDS.CMD_NULL
 
         ## Check Button State ##
         button_state = button_pressed
 
+
+        ### Decision Calculation ###
+        if self.state is STATES.WALK_STATE:
+            self.target.angular.z = self.determine_angular_target(averaged_line_pos)
+            self.target.linear.x = -0.05
+        elif self.state is STATES.TURN_STATE:
+            if new_cmd is CMDS.CMD_LEFT:
+                self.target.angular.z = ANG_VEL_STEP_SIZE
+            elif new_cmd is CMDS.CMD_RIGHT:
+                self.target.angular.z = -ANG_VEL_STEP_SIZE
+            self.target.linear.x = 0
+        elif self.state is STATES.CHASER_STATE:
+            pass
+        elif self.state is STATES.RUNNER_STATE:
+            pass
+
+
+        ### State Calculation ###
+        next_state = self.state
+        if self.state is STATES.WALK_STATE:
+            if self.lost_count > self.lost_count_threshold:
+                next_state = STATES.TURN_STATE
+        elif self.state is STATES.TURN_STATE:
+            if averaged_line_pos >= self.left_guard and averaged_line_pos <= self.right_guard:
+                next_state = STATES.WALK_STATE
+        elif self.state is STATES.CHASER_STATE:
+            pass 
+        elif self.state is STATES.RUNNER_STATE:
+            pass
+        
+        state_str = f'''CS: {STATES(self.state).name}\tNS: {STATES(next_state).name}'''
+        vel_str = f'''LV: {self.target.linear.x}\tAV: {self.target.angular.z}'''
+        data_str = f'''ALP: {averaged_line_pos}\tCCMD: {new_cmd}\tGCMD: {last_heard_cmd}'''
+        rospy.loginfo(state_str + '\t' + data_str)
+        
+        self.check_bounds()
+        self.control_publisher.publish(self.target)
+        self.state = next_state
 
         # # Averaging the nearsight data in an attempt to reduce the effect of small errors in the data
         # val = 0
@@ -246,9 +294,8 @@ rospy.Subscriber(buttonTopicName, UInt8, button_callback)
 
 
 ########## Controller node setup ##########
+brain = brian(controllerNodeName, commandTopicName, think_frequency)
 rate = rospy.Rate(think_frequency)
-brain = brian(think_frequency, controllerNodeName, commandTopicName)
-
 
 ########## Main loop ##########
 while not rospy.is_shutdown():
