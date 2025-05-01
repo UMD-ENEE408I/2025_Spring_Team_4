@@ -12,13 +12,15 @@ controllerNodeName = "brian"
 visionTopicName = "line_camera_topic"
 commandTopicName = 'cmd_vel'
 audioTopicName = 'audio_topic'
+buttonTopicName = 'button_topic'
 
 # Global parameters
 think_frequency = 50
 
 # Global variables (used to store data from topics for polling later)
-x_vec = Vector3()
+vision_x_vec = Vector3()
 last_heard_cmd = 0
+button_pressed = 0
 
 # Constant Values
 
@@ -95,7 +97,7 @@ class brian:
         For line following. Used to determine in which direction to turn to stay on the line. 
 
         """
-        rl = self.process_nearsight(x_vec.x)
+        rl = self.process_nearsight(vision_x_vec.x)
         if rl == -1: # turn left
             self.target.angular.z = -ANG_VEL_STEP_SIZE
         elif rl == 1:
@@ -150,69 +152,97 @@ class brian:
         """
         global last_heard_cmd
 
-        # Averaging the nearsight data in an attempt to reduce the effect of small errors in the data
-        val = 0
-        for value in self.nearsight_sample_queue:
-            val += value
-
-        try: # When this script first launches, the sample queue will be empty so we just ignore it for one cycle
-            val = val/len(self.nearsight_sample_queue)
-
-            if (val < -1) and (self.state is not TURN_STATE):
-                self.state = TURN_STATE
-                self.target.linear.x = 0
-            else:
-                if last_heard_cmd is CMD_CHASER:
-                    self.state = WALK_STATE
-                    last_heard_cmd = CMD_NULL
-        except ZeroDivisionError:
-            self.state = WALK_STATE
+        ### Data Collection and Processing ###
         
-        if self.state is TURN_STATE:
-            if val > -1:
-                rospy.loginfo("reset")
-                last_heard_cmd = CMD_NULL
+        ## Check Line Detector ##
+        new_value = vision_x_vec[0] 
+        lost_track = False if new_value in range(-1, 1) else True # Flag if the line detector lost track of the line
+        if len(self.nearsight_sample_queue) < self.sample_window and lost_track is False: # Checks if values need to be popped off the queue
+            self.nearsight_sample_queue.append(new_value)
+        else:
+            self.nearsight_sample_queue.popleft()
+            self.nearsight_sample_queue.append(new_value)
 
-            if last_heard_cmd is CMD_RIGHT:
-                self.target.angular.z = -ANG_VEL_STEP_SIZE
-            elif last_heard_cmd is CMD_LEFT:
-                self.target.angular.z = ANG_VEL_STEP_SIZE
-            else:
-                self.target.angular.z = 0
-                self.target.linear.x = 0
+        averaged_line_pos = 0 # Average of the values in the queue
+        averaged_line_pos = (averaged_line_pos + value for value in self.nearsight_sample_queue)/len(self.nearsight_sample_queue)
 
-        elif self.state is WALK_STATE:
-            self.determine_angular_target()
-            self.target.linear.x = -0.05
+        ## Check Command Issued ##
+        if last_heard_cmd is not CMD_NULL:
+            new_cmd = last_heard_cmd
+            last_heard_cmd = CMD_NULL
 
-        # Check valid target velocities
-        self.check_bounds()
+        ## Check Button State ##
+        button_state = button_pressed
 
-        # Log the decision variables
-        state_string = "WALK" if self.state is WALK_STATE else "TURN" # This may need to be changed if we will add more states
-        CMD_string = CMDS[last_heard_cmd] # Untested ! Don't know what is the right way to index the CMD list
-        fstring = f'''Angular: {self.target.angular.z}\tLinear: {self.target.linear.x}\tState: {state_string}\tCMD: {CMD_string}'''
-        rospy.loginfo(fstring)
 
-        # Send target linear and angular velocities
-        self.control_publisher.publish(self.target)
+        # # Averaging the nearsight data in an attempt to reduce the effect of small errors in the data
+        # val = 0
+        # for value in self.nearsight_sample_queue:
+        #     val += value
+
+        # try: # When this script first launches, the sample queue will be empty so we just ignore it for one cycle
+        #     val = val/len(self.nearsight_sample_queue)
+
+        #     if (val < -1) and (self.state is not TURN_STATE):
+        #         self.state = TURN_STATE
+        #         self.target.linear.x = 0
+        #     else:
+        #         if last_heard_cmd is CMD_CHASER:
+        #             self.state = WALK_STATE
+        #             last_heard_cmd = CMD_NULL
+        # except ZeroDivisionError:
+        #     self.state = WALK_STATE
+        
+        # if self.state is TURN_STATE:
+        #     if val > -1:
+        #         rospy.loginfo("reset")
+        #         last_heard_cmd = CMD_NULL
+
+        #     if last_heard_cmd is CMD_RIGHT:
+        #         self.target.angular.z = -ANG_VEL_STEP_SIZE
+        #     elif last_heard_cmd is CMD_LEFT:
+        #         self.target.angular.z = ANG_VEL_STEP_SIZE
+        #     else:
+        #         self.target.angular.z = 0
+        #         self.target.linear.x = 0
+
+        # elif self.state is WALK_STATE:
+        #     self.determine_angular_target()
+        #     self.target.linear.x = -0.05
+
+        # # Check valid target velocities
+        # self.check_bounds()
+
+        # # Log the decision variables
+        # state_string = "WALK" if self.state is WALK_STATE else "TURN" # This may need to be changed if we will add more states
+        # CMD_string = CMDS[last_heard_cmd] # Untested ! Don't know what is the right way to index the CMD list
+        # fstring = f'''Angular: {self.target.angular.z}\tLinear: {self.target.linear.x}\tState: {state_string}\tCMD: {CMD_string}'''
+        # rospy.loginfo(fstring)
+
+        # # Send target linear and angular velocities
+        # self.control_publisher.publish(self.target)
 
 ########## Call back functions for getting information from sensors. ##########
 
 # Updates the x_vec global variable which stores the near and far sight x values. 
-def vision_call_back(message): 
-    global x_vec
-    x_vec = message
+def vision_callback(message): 
+    global vision_x_vec
+    vision_x_vec = message
 
 # Updates the last_hear_cmd global variable every time the audio listener node hears a command. 
 def audio_cmd_callback(message): 
     global last_heard_cmd
     last_heard_cmd = message.data
 
+def button_callback(message):
+    global button_pressed
+    button_pressed = message.data
+
 
 ########## Subscriber node initialization ##########
-rospy.Subscriber(visionTopicName, Vector3, vision_call_back)
+rospy.Subscriber(visionTopicName, Vector3, vision_callback)
 rospy.Subscriber(audioTopicName, UInt8, audio_cmd_callback)
+rospy.Subscriber(buttonTopicName, UInt8, button_callback)
 
 
 ########## Controller node setup ##########
