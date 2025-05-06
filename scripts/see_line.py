@@ -131,7 +131,7 @@ while not rospy.is_shutdown():
         x_values.y = result["farsight_left"][0] if result["farsight_left"][0] is not None else -0xFFFF
         x_values.z = result["farsight_right"][0] if result["farsight_right"][0] is not None else -0xFFFF
 
-        rospy.loginfo(f'{x_values.x}\t{x_values.y}\t{x_values.z}')
+        rospy.loginfo(f'Nearsight: {x_values.x}\tFarsight Left:{x_values.y}\tFarsight Right:{x_values.z}')
 
         publisher.publish(x_values)
         

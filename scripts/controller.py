@@ -68,34 +68,6 @@ class brian:
         self.rate = rate
         self.control_publisher = rospy.Publisher(control_commands_topic_name, Twist, queue_size=10)
 
-    def process_nearsight(self, line_x_value):
-        """
-        Given the x value of where the nearsight vision detected the line, determines if the turtlebot should veer left or right. 
-        
-        Args:
-            line_x_value (float64): The x coordinate of the line in the near sight vision (value from -1 to 1).
-            left_guard (float64): If the x coord is futher left than this limit, this func will return 1 to turn right.
-            right_guard (float64): If the x coord is further right than this limit, this func will return -1 to turn left.   
-        
-        Returns:
-            result (int): -1, 0, or 1. -1 is turn left, 0 is do nothing, 1 is turn right
-        """
-        if len(self.nearsight_sample_queue) == self.sample_window:
-            self.nearsight_sample_queue.popleft()
-
-        self.nearsight_sample_queue.append(line_x_value)
-        sum = 0
-        for item in self.nearsight_sample_queue:
-            sum += item
-        result = sum/len(self.nearsight_sample_queue)
-
-        if result < self.left_guard:
-            return 1
-        elif result > self.right_guard:
-            return -1
-        else:
-            return 0
-
     def determine_angular_target(self, x_val):
         """
         For line following. Used to determine in which direction to turn to stay on the line. 
@@ -147,6 +119,7 @@ class brian:
 
         if len(self.far_left_sample_queue) == self.sample_window*2:
             self.far_left_sample_queue.popleft()
+
         #Grab rolling averages for far left and far right quadrants
         self.far_left_sample_queue.append(left_xvalue)
         leftsum = 0
@@ -176,6 +149,34 @@ class brian:
             return 1
         else:
             return 0
+
+    def collect_nearsight_data(self):
+        """Collects nearsighted vision data and processes it accordingly by adding a low pass filter. 
+
+        Returns:
+            detected_line_x_value (float): In the range of -1 to 1 specifying where the x value of the detected line is
+            lost_track (bool): If the nearsighted vision lost track of the line 
+        """
+        new_value = vision_x_vec.x
+        lost_track = False if new_value >= -1 and new_value <= 1 else True # Flag if the line detector lost track of the line
+        if len(self.nearsight_sample_queue) < self.sample_window and lost_track is False: # Checks if values need to be popped off the queue
+            self.nearsight_sample_queue.append(new_value)
+        else:
+            self.nearsight_sample_queue.popleft()
+            self.nearsight_sample_queue.append(new_value)
+
+        averaged_line_pos = 0 # Average of the values in the queue
+        for value in self.nearsight_sample_queue:
+            averaged_line_pos += value
+        averaged_line_pos = averaged_line_pos/len(self.nearsight_sample_queue)
+
+        if lost_track:
+            self.lost_count += 1
+        else:
+            self.lost_count = 0
+
+        return averaged_line_pos, lost_track
+
     def think(self):
         """
         Main function which processes all available data and makes a action decision.
@@ -201,23 +202,7 @@ class brian:
         ### Data Collection and Processing ###
         
         ## Check Line Detector ##
-        new_value = vision_x_vec.x
-        lost_track = False if new_value >= -1 and new_value <= 1 else True # Flag if the line detector lost track of the line
-        if len(self.nearsight_sample_queue) < self.sample_window and lost_track is False: # Checks if values need to be popped off the queue
-            self.nearsight_sample_queue.append(new_value)
-        else:
-            self.nearsight_sample_queue.popleft()
-            self.nearsight_sample_queue.append(new_value)
-
-        averaged_line_pos = 0 # Average of the values in the queue
-        for value in self.nearsight_sample_queue:
-            averaged_line_pos += value
-        averaged_line_pos = averaged_line_pos/len(self.nearsight_sample_queue)
-
-        if lost_track:
-            self.lost_count += 1
-        else:
-            self.lost_count = 0
+        averaged_line_pos, lost_track = self.collect_nearsight_data()
 
         ## Check Command Issued ##
         new_cmd = last_heard_cmd if last_heard_cmd is not CMDS.CMD_NULL else CMDS.CMD_NULL
