@@ -163,6 +163,10 @@ class brian:
         #Check if there's a drastic different in y values of the quadrants
         #May not be necessary but consider
 
+        #Grab y coords from farsight quadants
+        #Take the difference of them and see if there's a significant difference
+        #See which quadrant has the higher y coordinate and bias that quadrant/direction
+    
         #Compare left_result and right_result w/ threshold
         if left_result < -x_threshold & right_result > x_threshold:
             return 2
