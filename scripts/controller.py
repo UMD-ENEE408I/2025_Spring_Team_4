@@ -138,7 +138,7 @@ class brian:
             right_xvalue
             left_yvalue
             right_yvalue
-            x_threshold (should we do threshold impleentation)            
+            x_threshold (should we do threshold implentation)            
 
         Output: -1 for left turns, 1 for right turns, 2 for both left and right, 0 otherwise
         """
@@ -148,7 +148,7 @@ class brian:
         if len(self.far_left_sample_queue) == self.sample_window*2:
             self.far_left_sample_queue.popleft()
         #Grab rolling averages for far left and far right quadrants
-        self.far_left_sample_queue_sample_queue.append(left_xvalue)
+        self.far_left_sample_queue.append(left_xvalue)
         leftsum = 0
         for item in self.far_left_sample_queue:
             leftsum += item
