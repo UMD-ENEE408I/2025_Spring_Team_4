@@ -52,7 +52,7 @@ LIN_VEL_STEP_SIZE = 0.01
 ANG_VEL_STEP_SIZE = 0.3
 
 class brian:
-    def __init__(self, controller_node_name, control_commands_topic_name, rate, lost_count_threshold=10, left_guard=-0.1, right_guard=0.1, sample_window=5):
+    def __init__(self, controller_node_name, control_commands_topic_name, rate, lost_count_threshold=50, left_guard=-0.1, right_guard=0.1, sample_window=5):
         self.control_node = rospy.init_node(controller_node_name, anonymous=True)
         self.left_guard = left_guard
         self.right_guard = right_guard
@@ -63,7 +63,7 @@ class brian:
         self.far_left_sample_queue = deque(maxlen=sample_window*2)
         self.predict_dir = 0
         self.target = Twist()
-        self.state = 0
+        self.state = STATES.WALK_STATE
         self.lost_count = 0
         self.lost_count_threshold = lost_count_threshold
         self.rate = rate
@@ -76,11 +76,13 @@ class brian:
         """
         turn_rate = 0
         if x_val < self.left_guard:
-            for i in range(0, floor(1/self.left_guard)):
-                turn_rate += ANG_VEL_STEP_SIZE/2
+            for i in range(0, floor(1/self.left_guard/3)):
+                if x_val < (i+1)*self.left_guard:
+                    turn_rate += ANG_VEL_STEP_SIZE/3
         elif x_val > self.right_guard:
-            for i in range(0, floor(1/self.right_guard)):
-                turn_rate -= ANG_VEL_STEP_SIZE/2
+            for i in range(0, floor(1/self.right_guard/3)):
+                if x_val > (i+1)*self.right_guard:
+                    turn_rate -= ANG_VEL_STEP_SIZE/3
         return turn_rate
         
 
@@ -139,10 +141,6 @@ class brian:
         #Check if there's a drastic different in y values of the quadrants
         #May not be necessary but consider
 
-        #Grab y coords from farsight quadants
-        #Take the difference of them and see if there's a significant difference
-        #See which quadrant has the higher y coordinate and bias that quadrant/direction
-    
         #Compare left_result and right_result w/ threshold
         if left_result < -x_threshold & right_result > x_threshold:
             return 2
@@ -162,16 +160,17 @@ class brian:
         """
         new_value = vision_x_vec.x
         lost_track = False if new_value >= -1 and new_value <= 1 else True # Flag if the line detector lost track of the line
-        if len(self.nearsight_sample_queue) < self.sample_window and lost_track is False: # Checks if values need to be popped off the queue
-            self.nearsight_sample_queue.append(new_value)
-        else:
-            self.nearsight_sample_queue.popleft()
-            self.nearsight_sample_queue.append(new_value)
-
         averaged_line_pos = 0 # Average of the values in the queue
-        for value in self.nearsight_sample_queue:
-            averaged_line_pos += value
-        averaged_line_pos = averaged_line_pos/len(self.nearsight_sample_queue)
+        if lost_track is False:
+            if len(self.nearsight_sample_queue) < self.sample_window: # Checks if values need to be popped off the queue
+                self.nearsight_sample_queue.append(new_value)
+            else:
+                self.nearsight_sample_queue.popleft()
+                self.nearsight_sample_queue.append(new_value)
+
+            for value in self.nearsight_sample_queue:
+                averaged_line_pos += value
+            averaged_line_pos = averaged_line_pos/len(self.nearsight_sample_queue)
 
         if lost_track:
             self.lost_count += 1
@@ -218,7 +217,7 @@ class brian:
         ### Decision Calculation ###
         if self.state is STATES.WALK_STATE:
             self.target.angular.z = self.determine_angular_target(averaged_line_pos)
-            self.target.linear.x = -0.05
+            self.target.linear.x = -0.1
         elif self.state is STATES.TURN_STATE:
             if new_cmd is CMDS.CMD_LEFT:
                 self.target.angular.z = ANG_VEL_STEP_SIZE
@@ -237,8 +236,9 @@ class brian:
             if self.lost_count > self.lost_count_threshold:
                 next_state = STATES.TURN_STATE
         elif self.state is STATES.TURN_STATE:
-            if averaged_line_pos >= self.left_guard and averaged_line_pos <= self.right_guard:
-                next_state = STATES.WALK_STATE
+            if self.lost_count < self.lost_count_threshold:
+                if averaged_line_pos >= self.left_guard and averaged_line_pos <= self.right_guard:
+                    next_state = STATES.WALK_STATE
         elif self.state is STATES.CHASER_STATE:
             pass 
         elif self.state is STATES.RUNNER_STATE:
@@ -247,7 +247,8 @@ class brian:
         state_str = f'''CS: {STATES(self.state).name}\tNS: {STATES(next_state).name}'''
         vel_str = f'''LV: {self.target.linear.x}\tAV: {self.target.angular.z}'''
         data_str = f'''ALP: {averaged_line_pos}\tCCMD: {new_cmd}\tGCMD: {last_heard_cmd}'''
-        rospy.loginfo(state_str + '\t' + data_str)
+        lost_count_str = f'''LC: {self.lost_count}'''
+        rospy.loginfo(state_str + '\t' + data_str + '\t' + lost_count_str)
         
         self.check_bounds()
         self.control_publisher.publish(self.target)
@@ -310,7 +311,8 @@ def vision_callback(message):
 # Updates the last_hear_cmd global variable every time the audio listener node hears a command. 
 def audio_cmd_callback(message): 
     global last_heard_cmd
-    last_heard_cmd = message.data
+    last_heard_cmd = CMDS(message.data)
+    rospy.loginfo(f"LSH: {last_heard_cmd}")
 
 def button_callback(message):
     global button_pressed

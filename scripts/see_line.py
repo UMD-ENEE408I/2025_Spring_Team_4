@@ -25,7 +25,7 @@ def detectLine(frame):
     line_image = np.copy(frame) * 0  # creating a blank to draw lines on
 
     upper_white = 255
-    lower_white = 240
+    lower_white = 250
     kernel_erode = np.ones((4,4), np.uint8)
     kernel_dilate = np.ones((6,6),np.uint8)
 
@@ -114,7 +114,7 @@ rospy.init_node(publisherNodeName, anonymous=True)
 
 publisher = rospy.Publisher(topicName, Vector3, queue_size=1)
 
-rate = rospy.Rate(50)
+rate = rospy.Rate(60)
 
 videoCaptureObject = cv2.VideoCapture(0)
 
