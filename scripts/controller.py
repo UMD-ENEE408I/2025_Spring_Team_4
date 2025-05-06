@@ -119,7 +119,32 @@ class brian:
 
         if len(self.far_left_sample_queue) == self.sample_window*2:
             self.far_left_sample_queue.popleft()
-<<<<<<< HEAD
+
+        #Grab rolling averages for far left and far right quadrants
+        self.far_left_sample_queue.append(left_xvalue)
+        leftsum = 0
+        for item in self.far_left_sample_queue:
+            leftsum += item
+        left_result = leftsum/len(self.far_left_sample_queue)
+
+        self.far_right_sample_queue.append(right_xvalue)
+        rightsum = 0
+        for item in self.far_right_sample_queue:
+            rightsum =+ item
+        right_result = rightsum/len(self.far_right_sample_queue)
+
+        #Check if there's a drastic different in y values of the quadrants
+        #May not be necessary but consider
+
+        #Compare left_result and right_result w/ threshold
+        if left_result < -x_threshold & right_result > x_threshold:
+            return 2
+        elif left_result <-x_threshold:
+            return -1
+        elif right_result > x_threshold:
+            return 1
+        else:
+            return 0
 
     def collect_nearsight_data(self):
         """Collects nearsighted vision data and processes it accordingly by adding a low pass filter. 
@@ -148,33 +173,6 @@ class brian:
 
         return averaged_line_pos, lost_track
 
-=======
-        #Grab rolling averages for far left and far right quadrants
-        self.far_left_sample_queue.append(left_xvalue)
-        leftsum = 0
-        for item in self.far_left_sample_queue:
-            leftsum += item
-        left_result = leftsum/len(self.far_left_sample_queue)
-
-        self.far_right_sample_queue.append(right_xvalue)
-        rightsum = 0
-        for item in self.far_right_sample_queue:
-            rightsum =+ item
-        right_result = rightsum/len(self.far_right_sample_queue)
-
-        #Check if there's a drastic different in y values of the quadrants
-        #May not be necessary but consider
-
-        #Compare left_result and right_result w/ threshold
-        if left_result < -x_threshold & right_result > x_threshold:
-            return 2
-        elif left_result <-x_threshold:
-            return -1
-        elif right_result > x_threshold:
-            return 1
-        else:
-            return 0
->>>>>>> 50aa448436fa59094b7135ab62a87a8eb3b252e0
     def think(self):
         """
         Main function which processes all available data and makes a action decision.
