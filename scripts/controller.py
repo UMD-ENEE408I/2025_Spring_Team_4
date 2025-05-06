@@ -7,6 +7,7 @@ from std_msgs.msg import UInt8
 from turtlebot3_msgs.msg import Sound
 from collections import deque
 from enum import Enum
+from math import floor
 
 # Topic and Node names for this script
 controllerNodeName = "brian"
@@ -73,13 +74,15 @@ class brian:
         For line following. Used to determine in which direction to turn to stay on the line. 
 
         """
-        rl = self.process_nearsight(x_val)
-        if rl == -1: # turn left
-            return -ANG_VEL_STEP_SIZE
-        elif rl == 1:
-            return ANG_VEL_STEP_SIZE
-        else:
-            return 0
+        turn_rate = 0
+        if x_val < self.left_guard:
+            for i in range(0, floor(1/self.left_guard)):
+                turn_rate += ANG_VEL_STEP_SIZE/2
+        elif x_val > self.right_guard:
+            for i in range(0, floor(1/self.right_guard)):
+                turn_rate -= ANG_VEL_STEP_SIZE/2
+        return turn_rate
+        
 
     def check_bounds(self):
         """
