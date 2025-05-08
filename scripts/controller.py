@@ -41,6 +41,12 @@ class CMDS(Enum):
     CMD_CHASER = 3
     CMD_RUNNER = 4
 
+class FORK(Enum):
+    NO_FORK = 0
+    LEFT_FORK = -1
+    RIGHT_FORK = 1
+    BOTH_FORK = 2
+
 # Decision Variables
 LEFT = 1
 RIGHT = -1
@@ -76,13 +82,13 @@ class brian:
         """
         turn_rate = 0
         if x_val < self.left_guard:
-            for i in range(0, floor(1/self.left_guard/3)):
+            for i in range(0, floor(1/self.left_guard/2)):
                 if x_val < (i+1)*self.left_guard:
-                    turn_rate += ANG_VEL_STEP_SIZE/3
+                    turn_rate += ANG_VEL_STEP_SIZE
         elif x_val > self.right_guard:
-            for i in range(0, floor(1/self.right_guard/3)):
+            for i in range(0, floor(1/self.right_guard/2)):
                 if x_val > (i+1)*self.right_guard:
-                    turn_rate -= ANG_VEL_STEP_SIZE/3
+                    turn_rate -= ANG_VEL_STEP_SIZE
         return turn_rate
         
 
@@ -100,7 +106,7 @@ class brian:
         elif self.target.linear.x < -BURGER_MAX_LIN_VEL:
             self.target.linear.x = -BURGER_MAX_LIN_VEL
 
-    def look_forwards(self, left_xvalue, right_xvalue, left_yvalue, right_yvalue, x_threshold = 0.4):
+    def look_forwards(self, x_threshold = 0.1):
         """
         Process the farsight vision to try to determine if a junction is coming up. 
         **INCOMPLETE**
@@ -119,10 +125,17 @@ class brian:
 
         Output: -1 for left turns, 1 for right turns, 2 for both left and right, 0 otherwise
         """
-        if len(self.far_right_sample_queue) == self.sample_window*2:
+
+        left_xvalue = vision_x_vec.y
+        right_xvalue = vision_x_vec.z
+
+        lost_left = True if left_xvalue < -1 else False
+        lost_right = True if right_xvalue < -1 else False
+
+        if len(self.far_right_sample_queue) == self.sample_window/2:
             self.far_right_sample_queue.popleft()
 
-        if len(self.far_left_sample_queue) == self.sample_window*2:
+        if len(self.far_left_sample_queue) == self.sample_window/2:
             self.far_left_sample_queue.popleft()
 
         #Grab rolling averages for far left and far right quadrants
@@ -142,11 +155,11 @@ class brian:
         #May not be necessary but consider
 
         #Compare left_result and right_result w/ threshold
-        if left_result < -x_threshold & right_result > x_threshold:
+        if left_result < x_threshold and right_result > -x_threshold:
             return 2
-        elif left_result <-x_threshold:
+        elif left_result < x_threshold:
             return -1
-        elif right_result > x_threshold:
+        elif right_result > -x_threshold:
             return 1
         else:
             return 0
@@ -204,7 +217,8 @@ class brian:
         ### Data Collection and Processing ###
         
         ## Check Line Detector ##
-        averaged_line_pos, lost_track = self.collect_nearsight_data()
+        averaged_line_pos, _ = self.collect_nearsight_data()
+        fork_decision = self.look_forwards()
 
         ## Check Command Issued ##
         new_cmd = last_heard_cmd if last_heard_cmd is not CMDS.CMD_NULL else CMDS.CMD_NULL
@@ -217,7 +231,7 @@ class brian:
         ### Decision Calculation ###
         if self.state is STATES.WALK_STATE:
             self.target.angular.z = self.determine_angular_target(averaged_line_pos)
-            self.target.linear.x = -0.1
+            self.target.linear.x = -0.05
         elif self.state is STATES.TURN_STATE:
             if new_cmd is CMDS.CMD_LEFT:
                 self.target.angular.z = ANG_VEL_STEP_SIZE
@@ -248,7 +262,8 @@ class brian:
         vel_str = f'''LV: {self.target.linear.x}\tAV: {self.target.angular.z}'''
         data_str = f'''ALP: {averaged_line_pos}\tCCMD: {new_cmd}\tGCMD: {last_heard_cmd}'''
         lost_count_str = f'''LC: {self.lost_count}'''
-        rospy.loginfo(state_str + '\t' + data_str + '\t' + lost_count_str)
+        fork_decision = f'''FD: {FORK(fork_decision).name}'''
+        rospy.loginfo(f'''{state_str}''')
         
         self.check_bounds()
         self.control_publisher.publish(self.target)

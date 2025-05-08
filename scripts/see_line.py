@@ -24,7 +24,7 @@ def detectLine(frame):
     gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
 
     upper_white = 255
-    lower_white = np.mean(gray) + 50
+    lower_white = np.mean(gray) + 120 if np.mean(gray) + 120 < 240 else 240
     kernel_erode = np.ones((4,4), np.uint8)
     kernel_dilate = np.ones((6,6),np.uint8)
 
@@ -65,7 +65,7 @@ def splitFrameRegions(frame, near_ratio=0.5, far_ratio=0.5):
     height, width, _ = frame.shape
 
     near_start = int((1 - near_ratio) * height)
-    far_end = int(far_ratio * height)
+    far_start = int((1-(far_ratio+near_ratio)) * height)
     half_width = width // 2
 
     # # Draw horizontal line for nearsight boundary
@@ -79,8 +79,8 @@ def splitFrameRegions(frame, near_ratio=0.5, far_ratio=0.5):
 
     # Extract regions
     nearsight = frame[near_start:, :]
-    farsight_left = frame[:far_end, :half_width]
-    farsight_right = frame[:far_end, half_width:]
+    farsight_left = frame[far_start:near_start, :half_width]
+    farsight_right = frame[far_start:near_start, half_width:]
 
     regions = {
         "nearsight": nearsight,
@@ -114,7 +114,7 @@ bridgeObject = CvBridge()
 while not rospy.is_shutdown():
     returnValue, capturedFrame = videoCaptureObject.read()
     if returnValue == True:
-        result = detectLinesInRegion(capturedFrame, 0.10, 0.90)
+        result = detectLinesInRegion(capturedFrame, 0.50, 0.10)
         
         x_values = Vector3()
 
