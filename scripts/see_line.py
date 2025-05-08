@@ -22,10 +22,9 @@ def detectLine(frame):
     """
 
     gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
-    line_image = np.copy(frame) * 0  # creating a blank to draw lines on
 
     upper_white = 255
-    lower_white = 250
+    lower_white = np.mean(gray) + 50
     kernel_erode = np.ones((4,4), np.uint8)
     kernel_dilate = np.ones((6,6),np.uint8)
 
@@ -36,10 +35,8 @@ def detectLine(frame):
     
     # Sort by area (keep only the biggest one)
     contours = sorted(contours, key=cv2.contourArea, reverse=True)[:1]
-    cx = -1
-    cy = -1
-    height, width = frame.shape[:2]
     cx = cy = -1
+    height, width = frame.shape[:2]
     norm_cx = norm_cy = None
     if len(contours) > 0:
         M = cv2.moments(contours[0])
@@ -51,13 +48,7 @@ def detectLine(frame):
         norm_cx = (cx - width / 2) / (width / 2)
         norm_cy = (cy - height / 2) / (height / 2)
 
-    cv2.circle(line_image, (cx, cy), 10, (0, 255, 0), -1)  # Green filled circle
-
-    cv2.circle(line_image, (width // 2, height // 2), 10, (0, 0, 255), -1)  # Red dot at normalized (0,0)
-
-    # Draw the lines on the  image
-    processed_image = cv2.addWeighted(frame, 0.8, line_image, 1, 0)
-    return processed_image, norm_cx, norm_cy
+    return norm_cx, norm_cy
 
 def splitFrameRegions(frame, near_ratio=0.5, far_ratio=0.5):
     """
@@ -103,7 +94,7 @@ def detectLinesInRegion(frame, near_ratio=0.5, far_ratio=0.5):
     regions = splitFrameRegions(frame, near_ratio, far_ratio)
     result = {}
     for region in regions:
-        _, x, y = detectLine(regions[region])
+        x, y = detectLine(regions[region])
         result[region] = [x, y]
     return result
 
@@ -123,7 +114,7 @@ bridgeObject = CvBridge()
 while not rospy.is_shutdown():
     returnValue, capturedFrame = videoCaptureObject.read()
     if returnValue == True:
-        result = detectLinesInRegion(capturedFrame, 0.05, 0.95)
+        result = detectLinesInRegion(capturedFrame, 0.10, 0.90)
         
         x_values = Vector3()
 
