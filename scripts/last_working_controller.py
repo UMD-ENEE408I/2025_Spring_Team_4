@@ -74,7 +74,6 @@ class brian:
         self.lost_count_threshold = lost_count_threshold
         self.rate = rate
         self.control_publisher = rospy.Publisher(control_commands_topic_name, Twist, queue_size=10)
-        self.last_button_state = 0
 
     def determine_angular_target(self, x_val):
         """
@@ -92,6 +91,7 @@ class brian:
                     turn_rate -= ANG_VEL_STEP_SIZE
         return turn_rate
         
+
     def check_bounds(self):
         """
         Checks the target linear and angular velocities. Floors to the limit values if the target is past the burgerbot limits. 
@@ -226,8 +226,6 @@ class brian:
 
         ## Check Button State ##
         button_state = button_pressed
-        last_button_state = self.last_button_state
-        self.last_button_state = button_state
 
 
         ### Decision Calculation ###
@@ -241,40 +239,24 @@ class brian:
                 self.target.angular.z = -ANG_VEL_STEP_SIZE
             self.target.linear.x = 0
         elif self.state is STATES.CHASER_STATE:
-            self.target.angular.z = -ANG_VEL_STEP_SIZE
-            self.target.linear.x = 0
+            pass
         elif self.state is STATES.RUNNER_STATE:
-            self.target.angular.z = 0
-            self.target.linear.x = -0.05
+            pass
 
 
         ### State Calculation ###
         next_state = self.state
         if self.state is STATES.WALK_STATE:
-            if new_cmd is CMDS.CMD_CHASER:
-                next_state = STATES.CHASER_STATE
-            elif new_cmd is CMDS.CMD_RUNNER:
-                next_state = STATES.RUNNER_STATE
-            elif self.lost_count > self.lost_count_threshold:
+            if self.lost_count > self.lost_count_threshold:
                 next_state = STATES.TURN_STATE
         elif self.state is STATES.TURN_STATE:
-            if new_cmd is CMDS.CMD_CHASER:
-                next_state = STATES.CHASER_STATE
-            elif new_cmd is CMDS.CMD_RUNNER:
-                next_state = STATES.RUNNER_STATE
-            elif self.lost_count < self.lost_count_threshold:
+            if self.lost_count < self.lost_count_threshold:
                 if averaged_line_pos >= self.left_guard and averaged_line_pos <= self.right_guard:
                     next_state = STATES.WALK_STATE
         elif self.state is STATES.CHASER_STATE:
-            if new_cmd is CMDS.CMD_RUNNER:
-                next_state = STATES.RUNNER_STATE
-            elif new_cmd is CMDS.CMD_RIGHT or CMDS.CMD_LEFT:
-                next_state = STATES.WALK_STATE
+            pass 
         elif self.state is STATES.RUNNER_STATE:
-            if new_cmd is CMDS.CMD_CHASER:
-                next_state = STATES.CHASER_STATE
-            elif new_cmd is CMDS.CMD_RIGHT or CMDS.CMD_LEFT:
-                next_state = STATES.WALK_STATE
+            pass
         
         state_str = f'''CS: {STATES(self.state).name}\tNS: {STATES(next_state).name}'''
         vel_str = f'''LV: {self.target.linear.x}\tAV: {self.target.angular.z}'''
@@ -282,7 +264,7 @@ class brian:
         lost_count_str = f'''LC: {self.lost_count}'''
         fork_decision = f'''FD: {FORK(fork_decision).name}'''
         button_str = f'''BS: {button_state}'''
-        rospy.loginfo(f'''{state_str}''')
+        rospy.loginfo(f'''{button_str}''')
         
         self.check_bounds()
         self.control_publisher.publish(self.target)
@@ -346,6 +328,7 @@ def vision_callback(message):
 def audio_cmd_callback(message): 
     global last_heard_cmd
     last_heard_cmd = CMDS(message.data)
+    rospy.loginfo(f"LSH: {last_heard_cmd}")
 
 def button_callback(message):
     global button_pressed
