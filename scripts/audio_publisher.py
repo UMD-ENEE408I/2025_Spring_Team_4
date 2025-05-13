@@ -1,6 +1,5 @@
 #!/usr/bin/env python3
 import rospy
-import sys
 from std_msgs.msg import UInt8
 import sounddevice as sd
 from vosk import Model, KaldiRecognizer
@@ -27,7 +26,7 @@ rec.SetWords(True)
 
 def callback(indata, frames, time, status):
     if status:
-        print(f"Status: {status}")
+        rospy.loginfo(f"Status: {status}")
     audio_buffer.put(indata.tobytes())
 
 stream = sd.InputStream(callback=callback, channels=1, samplerate=samplerate, dtype='int16', blocksize=8000)
@@ -36,7 +35,7 @@ with stream:
     rospy.loginfo("Listening for CMDS!... (Ctrl+C to quit)")
     while not rospy.is_shutdown():
             chunk = audio_buffer.get()
-            rospy.loginfo(f"AH")
+            rospy.loginfo(f"Chunk Queued")
             if rec.AcceptWaveform(chunk):
                 text = json.loads(rec.Result())["text"].lower()
                 rospy.loginfo(f"Recognized: {text}")
